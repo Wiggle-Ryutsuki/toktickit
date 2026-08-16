@@ -15,5 +15,8 @@
 **How I responded:** I acknowledged the approvals and carried on to the next task.
 
 ## Pull Requests I reviewed for my partner
-**My comment:** My partner's code was also sound and met the requirements of the task. So the majority of my reviews are short approvals.   
-**Partner's response:** They acknowledged and appreciated the review and carried on with the next task. 
+**My comment:** There was one commented line where I thought might be better deleted, so I questioned this choice while suggesting to remove it. Other than that, the rest of the checks were fine and approved. 
+
+**Partner's response:** They replied that the feature might be needed later and decided to keep it commented away. I accepted this response. Other than that, they acknowledged my approvals for the rest of the reviews and carried on.
+
+![alt text](PR-Comment.png) 
