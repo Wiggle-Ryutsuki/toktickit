@@ -40,17 +40,6 @@ export default function App() {
 
       {/* For Issue 2: Useful error message if backend is unavailable */}
 
-      {/* Success */}
-      {state === "success" &&
-      <div className="alert alert-success mt-4" role="alert">
-        <h5 className="alert-heading mb-1">
-          Status: Online
-        </h5>
-        <p className="mb-0">
-          {error ?? "Connected to TokTickIT API server"}
-        </p>
-      </div>}
-
       {/* Error */}
       {state === "error" && 
       <div className="alert alert-danger mt-4" role="alert">
@@ -63,6 +52,40 @@ export default function App() {
       </div>}
 
       {/* TODO(Issue 4): render loading / success (Online + categories) / error (Offline) states. */}
+
+      {/* Loading */}
+      {state === "loading" &&
+      <div className="alert alert-info mt-4" role="alert">
+        <h5 className="alert-heading mb-1">
+          Status: Loading...
+        </h5>
+        <p className="mb-0">
+          Loading categories...
+        </p>
+      </div>}
+      
+      {/* Success */}
+      {state === "success" && (
+        <>
+          <div className="alert alert-success mt-4" role="alert">
+            <h5 className="alert-heading mb-1">
+              Status: Online
+            </h5>
+            <p className="mb-0">
+              {error ?? "Connected to TokTickIT API server"}
+            </p>
+          </div>
+          <h6 className="mt-3">Categories ({categories.length})</h6>
+          <ul className="list-group mt-3">
+            {categories.map((cat) => (
+              <li key={cat.id} className="list-group-item">
+                {cat.name}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
     </div>
   );
 }
