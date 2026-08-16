@@ -9,7 +9,7 @@
 | Foundation features #5 | feature/1-project-foundation | Foundation is sound. |
 | Implemented API health check #6 | feature/2-health-check | The appropriate code has been made for issue 2, well done. |
 | Created and seeded Prisma IT request categories #7 | feature/3-category-seed | Addresses everything correctly for issue 3, good job. |
-|  Feature/4 category list- #8  | feature/4-category-list |  |
+|  Feature/4 category list- #8  | feature/4-category-list | Everything looks good, no errors spotted. |
 
 **Reviewer comment I received:** Most of the comments I received from my reviewer were approvals and there were no major issues.    
 **How I responded:** I acknowledged the approvals and carried on to the next task.
