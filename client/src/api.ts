@@ -29,5 +29,5 @@ export async function checkSystem(): Promise<SystemStatus> {
 
   const categories: Category[] = await categoriesRes.json();
 
-  return {online: true, categories};
+  return { online: true, categories };
 }
