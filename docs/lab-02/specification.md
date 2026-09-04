@@ -371,16 +371,16 @@ graph TD
 
 ### Issue Decomposition & Merge Order:
 1. **Issue 5: Development Requester Context & Reference Data**
-   * *Branch*: `feature/issue-05-dev-requester`
+   * *Branch*: `feature/5-dev-requester`
    * *Scope*: Prisma schema update (User, Category, RelatedSystem), seed data, requester selection API, Dev Requester UI selector, Context Provider.
 2. **Issue 6: Create Ticket Screen & Submission API**
-   * *Branch*: `feature/issue-06-create-ticket`
+   * *Branch*: `feature/6-create-ticket`
    * *Scope*: Ticket & Sequence Prisma models, ticket creation API (`POST /api/tickets`), Zen Green Create Ticket UI, validation, success feedback.
 3. **Issue 7: My Tickets List, Search, Filter & Pagination**
-   * *Branch*: `feature/issue-07-my-tickets`
+   * *Branch*: `feature/7-my-tickets`
    * *Scope*: Paginated ticket list API (`GET /api/tickets`), search/filter/sort queries, My Tickets table/cards UI, empty and no-results states.
 4. **Issue 8: Requester Ticket Detail & Attachment Lifecycle**
-   * *Branch*: `feature/issue-08-ticket-detail-attachments`
+   * *Branch*: `feature/8-ticket-detail-attachments`
    * *Scope*: Ticket detail API (`GET /api/tickets/:id`), Attachment model & upload/download/soft-delete endpoints, Ticket Detail view, Attachment section & soft-removal modal.
 
 ---
