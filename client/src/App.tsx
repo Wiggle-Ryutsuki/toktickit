@@ -3,6 +3,7 @@ import { checkSystem, Category } from "./api.js";
 import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
 import Navbar from "./components/Navbar.js";
 import RequesterSelector from "./components/RequesterSelector.js";
+import CreateTicket from "./components/CreateTicket.js";
 import "./theme.css";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
@@ -10,6 +11,7 @@ type UiState = "idle" | "loading" | "success" | "error";
 
 function AppContent() {
   const { selectedRequester, isSelectorOpen } = useRequester();
+  const [activeView, setActiveView] = useState<"tickets" | "create-ticket">("tickets");
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -32,19 +34,22 @@ function AppContent() {
 
   return (
     <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: "var(--color-page-bg)" }}>
-      <Navbar />
+      <Navbar activeView={activeView} onNavigate={setActiveView} />
 
       {(!selectedRequester || isSelectorOpen) && <RequesterSelector />}
 
-      <main className="container py-4 flex-grow-1" style={{ maxWidth: 800 }}>
-        {selectedRequester && (
-          <div className="alert alert-success d-flex align-items-center justify-content-between py-2 px-3 mb-4" role="status">
-            <div>
-              <span className="fw-semibold">Active Requester Context:</span> {selectedRequester.displayName} ({selectedRequester.email})
+      {activeView === "create-ticket" ? (
+        <CreateTicket onCancel={() => setActiveView("tickets")} />
+      ) : (
+        <main className="container py-4 flex-grow-1" style={{ maxWidth: 800 }}>
+          {selectedRequester && (
+            <div className="alert alert-success d-flex align-items-center justify-content-between py-2 px-3 mb-4" role="status">
+              <div>
+                <span className="fw-semibold">Active Requester Context:</span> {selectedRequester.displayName} ({selectedRequester.email})
+              </div>
+              <span className="badge bg-success">Role: {selectedRequester.role}</span>
             </div>
-            <span className="badge bg-success">Role: {selectedRequester.role}</span>
-          </div>
-        )}
+          )}
 
         <div className="zen-card p-4 mb-4">
           <h2 className="h4 mb-3 fw-bold" style={{ color: "var(--color-primary-green)" }}>
@@ -97,6 +102,7 @@ function AppContent() {
           )}
         </div>
       </main>
+      )}
     </div>
   );
 }

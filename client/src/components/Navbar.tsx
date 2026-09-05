@@ -1,22 +1,48 @@
 import React from "react";
 import { useRequester } from "../context/RequesterContext.js";
 
-export default function Navbar() {
+export interface NavbarProps {
+  activeView?: "tickets" | "create-ticket";
+  onNavigate?: (view: "tickets" | "create-ticket") => void;
+}
+
+export default function Navbar({ activeView = "tickets", onNavigate }: NavbarProps) {
   const { selectedRequester, openSelector } = useRequester();
 
   return (
     <header className="zen-header navbar navbar-expand-lg">
       <div className="container-fluid d-flex justify-content-between align-items-center">
         <div className="d-flex align-items-center gap-4">
-          <a className="navbar-brand d-flex align-items-center gap-2 m-0 text-decoration-none" href="#/">
+          <a
+            className="navbar-brand d-flex align-items-center gap-2 m-0 text-decoration-none"
+            href="#/"
+            onClick={(e) => {
+              e.preventDefault();
+              onNavigate?.("tickets");
+            }}
+          >
             <span style={{ fontSize: "1.25rem" }}>🎫</span>
             <span>TokTickIT</span>
           </a>
           <nav className="d-flex gap-3">
-            <a className="nav-link active text-decoration-none" href="#/my-tickets">
+            <a
+              className={`nav-link text-decoration-none ${activeView === "tickets" ? "active" : ""}`}
+              href="#/my-tickets"
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigate?.("tickets");
+              }}
+            >
               My Tickets
             </a>
-            <a className="nav-link text-decoration-none" href="#/create-ticket">
+            <a
+              className={`nav-link text-decoration-none ${activeView === "create-ticket" ? "active" : ""}`}
+              href="#/create-ticket"
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigate?.("create-ticket");
+              }}
+            >
               + Create Ticket
             </a>
           </nav>
