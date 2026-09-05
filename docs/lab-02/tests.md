@@ -28,13 +28,13 @@ TokTickIT employs a multi-tiered testing strategy ensuring that all functional r
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **UT-01** | Unit | BR-01, FR-06 | Ticket Number formatting function | Generates format `TKT-YYYY-NNNNN` with 5-digit padding | `server/tests/lab-02/ticket-number.test.ts` | Planned |
-| **UT-02** | Unit | BR-08, AC-06 | Attachment validator (file type & size) | Accepts JPG/PNG/WEBP/PDF &le; 5MB; rejects invalid types & >5MB | `server/tests/lab-02/attachment-validator.test.ts` | Planned |
-| **UT-03** | Unit | BR-05, BR-06 | Ticket form input validation schemas | Rejects summary <5 or >120 chars, description <10 or >2000 chars | `shared/tests/validation.test.ts` | Planned |
+| **UT-01** | Unit | BR-01, FR-06 | Ticket Number formatting function | Generates format `TKT-YYYY-NNNNN` with 5-digit padding | `server/tests/lab-02/ticket-number.test.ts` | Pass |
+| **UT-02** | Unit | BR-08, AC-06 | Attachment validator (file type & size) | Accepts JPG/PNG/WEBP/PDF &le; 5MB; rejects invalid types & >5MB | `server/tests/lab-02/attachment-validator.test.ts` | Pass |
+| **UT-03** | Unit | BR-05, BR-06 | Ticket form input validation schemas | Rejects summary <5 or >120 chars, description <10 or >2000 chars | `server/tests/lab-02/validation.test.ts` | Pass |
 | **API-01** | API | FR-01, BR-03 | `GET /api/requesters` | Returns HTTP 200 with list of active requesters only; inactive excluded | `server/tests/lab-02/requesters.api.test.ts` | Pass |
 | **API-02** | API | FR-03, BR-11 | `GET /api/categories` and `GET /api/related-systems` | Returns HTTP 200 with 4 categories and 6+ related systems | `server/tests/lab-02/reference-data.api.test.ts` | Pass |
-| **API-03** | API | FR-06, BR-01, BR-02, AC-01 | `POST /api/tickets` (Valid submission) | Returns HTTP 201 with saved ticket, status `NEW`, and generated ticket number | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
-| **API-04** | API | FR-05, AC-05 | `POST /api/tickets` (Validation failure) | Returns HTTP 422 with field-level validation errors when summary/desc empty | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
+| **API-03** | API | FR-06, BR-01, BR-02, AC-01 | `POST /api/tickets` (Valid submission) | Returns HTTP 201 with saved ticket, status `NEW`, and generated ticket number | `server/tests/lab-02/create-ticket.api.test.ts` | Pass |
+| **API-04** | API | FR-05, AC-05 | `POST /api/tickets` (Validation failure) | Returns HTTP 422 with field-level validation errors when summary/desc empty | `server/tests/lab-02/create-ticket.api.test.ts` | Pass |
 | **API-05** | API | FR-08, BR-04, AC-03 | `GET /api/tickets?requesterId=:id` | Returns HTTP 200 with only tickets belonging to requested user | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
 | **API-06** | API | FR-09, FR-10, AC-09 | `GET /api/tickets` with search, filter, sort, page | Returns HTTP 200 with filtered results and pagination metadata | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
 | **API-07** | API | FR-12, FR-13, AC-04 | `GET /api/tickets/:id` (Ownership validation) | Returns HTTP 200 for owner; HTTP 403 / 404 if accessed by different requester | `server/tests/lab-02/ticket-detail.api.test.ts` | Planned |
@@ -42,14 +42,14 @@ TokTickIT employs a multi-tiered testing strategy ensuring that all functional r
 | **API-09** | API | FR-15, BR-09, BR-10, AC-08 | `DELETE /api/tickets/:id/attachments/:attachmentId` | Soft-deletes attachment, sets `deletedAt` and reason, returns HTTP 200 | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | **API-10** | API | FR-16, BR-09, AC-08 | `GET /api/tickets/:id/attachments/:attachmentId` | Returns file stream for active attachment; HTTP 410 / 404 for soft-deleted file | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | **UI-01** | UI | FR-01, FR-02, AC-02 | Development Requester Selector Component | Renders active requester list, handles selection change and localStorage update | `client/tests/lab-02/RequesterSelector.test.tsx` | Pass |
-| **UI-02** | UI | FR-03, FR-04, FR-05 | Create Ticket Form Rendering & Pre-population | Displays read-only requester name, loads categories/systems, displays asterisks | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
-| **UI-03** | UI | FR-05, AC-05 | Create Ticket Client Validation | Submitting empty form displays field-level errors and prevents API call | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
-| **UI-04** | UI | FR-06, FR-07, AC-01 | Create Ticket Submission & Success State | Shows busy state during submit, renders success banner with ticket number | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
+| **UI-02** | UI | FR-03, FR-04, FR-05 | Create Ticket Form Rendering & Pre-population | Displays read-only requester name, loads categories/systems, displays asterisks | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
+| **UI-03** | UI | FR-05, AC-05 | Create Ticket Client Validation | Submitting empty form displays field-level errors and prevents API call | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
+| **UI-04** | UI | FR-06, FR-07, AC-01 | Create Ticket Submission & Success State | Shows busy state during submit, renders success banner with ticket number | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
 | **UI-05** | UI | FR-08, FR-11, AC-03 | My Tickets List & Empty State | Displays ticket table/cards; renders empty state when user has 0 tickets | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
 | **UI-06** | UI | FR-09, FR-11, AC-10 | My Tickets Search, Filter & No-Results State | Filters tickets by search/category; displays "No matching tickets found" banner | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
 | **UI-07** | UI | FR-12, FR-13 | Ticket Detail Read-Only View | Displays all ticket fields in read-only mode with status & priority badges | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Planned |
 | **UI-08** | UI | FR-15, BR-09, AC-08 | Attachment Section & Soft-Removal Modal | Prompts for confirmation and reason; updates attachment display to tombstone | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
-| **UI-09** | UI | BR-12 | Error Resilience and Form Recovery | Simulates backend 500 failure; ensures form inputs and entered data are retained | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
+| **UI-09** | UI | BR-12 | Error Resilience and Form Recovery | Simulates backend 500 failure; ensures form inputs and entered data are retained | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
 | **E2E-01** | E2E | AC-01, AC-02, AC-03 | Complete Requester Ticketing Flow | Select requester &rarr; create ticket &rarr; view in My Tickets &rarr; switch requester (verify isolation) | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
 | **E2E-02** | E2E | AC-08, FR-14, FR-15 | Attachment Lifecycle Flow | Upload attachment on creation &rarr; view on detail &rarr; download &rarr; soft-remove with reason | `e2e/lab-02/attachment-lifecycle.spec.ts` | Planned |
 
