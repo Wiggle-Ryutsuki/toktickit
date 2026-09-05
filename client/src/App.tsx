@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar.js";
 import RequesterSelector from "./components/RequesterSelector.js";
 import CreateTicket from "./components/CreateTicket.js";
 import MyTickets from "./components/MyTickets.js";
+import RequesterTicketDetail from "./components/RequesterTicketDetail.js";
 import "./theme.css";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
@@ -12,10 +13,23 @@ type UiState = "idle" | "loading" | "success" | "error";
 
 function AppContent() {
   const { selectedRequester, isSelectorOpen } = useRequester();
-  const [activeView, setActiveView] = useState<"tickets" | "create-ticket">("tickets");
+  const [activeView, setActiveView] = useState<"tickets" | "create-ticket" | "ticket-detail">("tickets");
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  const handleNavigate = (view: "tickets" | "create-ticket" | "ticket-detail") => {
+    if (view !== "ticket-detail") {
+      setSelectedTicketId(null);
+    }
+    setActiveView(view);
+  };
+
+  const handleViewDetail = (id: number) => {
+    setSelectedTicketId(id);
+    setActiveView("ticket-detail");
+  };
 
   async function handleCheck() {
     setState("loading");
@@ -32,15 +46,29 @@ function AppContent() {
 
   return (
     <div className="min-vh-100 d-flex flex-column pb-5 pb-md-0" style={{ backgroundColor: "var(--color-page-bg)" }}>
-      <Navbar activeView={activeView} onNavigate={setActiveView} />
+      <Navbar activeView={activeView} onNavigate={handleNavigate} />
 
       {(!selectedRequester || isSelectorOpen) && <RequesterSelector />}
 
-      {activeView === "create-ticket" ? (
-        <CreateTicket onCancel={() => setActiveView("tickets")} />
+      {activeView === "ticket-detail" && selectedTicketId !== null ? (
+        <RequesterTicketDetail
+          ticketId={selectedTicketId}
+          onBack={() => {
+            setSelectedTicketId(null);
+            setActiveView("tickets");
+          }}
+        />
+      ) : activeView === "create-ticket" ? (
+        <CreateTicket
+          onCancel={() => setActiveView("tickets")}
+          onViewDetail={handleViewDetail}
+        />
       ) : (
         <>
-          <MyTickets onNavigateCreate={() => setActiveView("create-ticket")} />
+          <MyTickets
+            onNavigateCreate={() => setActiveView("create-ticket")}
+            onViewDetail={handleViewDetail}
+          />
 
           {/* Lab 1 Baseline: System Status Check (Preserved for Non-Regression) */}
           <div className="container py-3 px-lg-5" style={{ maxWidth: 1280 }}>

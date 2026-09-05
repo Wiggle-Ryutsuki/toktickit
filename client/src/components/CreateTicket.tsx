@@ -21,6 +21,7 @@ export interface RelatedSystem {
 export interface CreateTicketProps {
   onCancel?: () => void;
   onTicketCreated?: (ticket: any) => void;
+  onViewDetail?: (id: number) => void;
 }
 
 interface FormErrors {
@@ -31,7 +32,7 @@ interface FormErrors {
   attachments?: string;
 }
 
-export default function CreateTicket({ onCancel, onTicketCreated }: CreateTicketProps) {
+export default function CreateTicket({ onCancel, onTicketCreated, onViewDetail }: CreateTicketProps) {
   const { selectedRequester } = useRequester();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -296,7 +297,11 @@ export default function CreateTicket({ onCancel, onTicketCreated }: CreateTicket
             <button
               type="button"
               className="btn btn-zen-primary"
-              onClick={() => alert(`View details for ticket ${createdTicket.ticketNo} (Available in Feature 8)`)}
+              onClick={() => {
+                if (onViewDetail) {
+                  onViewDetail(createdTicket.id);
+                }
+              }}
             >
               View Ticket Details
             </button>
