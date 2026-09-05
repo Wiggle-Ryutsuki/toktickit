@@ -55,6 +55,48 @@ body {
   text-underline-offset: 4px;
 }
 
+/* Mobile Bottom Navigation Bar */
+.zen-mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background-color: #ffffff;
+  border-top: 1px solid var(--color-border-subtle);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+  z-index: 1040;
+  display: flex;
+}
+
+.zen-mobile-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  padding: 6px 0;
+  transition: all 0.15s ease;
+  border-top: 3px solid transparent;
+}
+
+.zen-mobile-nav-item:hover {
+  color: var(--color-primary-green);
+}
+
+.zen-mobile-nav-item.active {
+  color: var(--color-primary-green);
+  font-weight: 700;
+  border-top-color: var(--color-primary-green);
+  background-color: rgba(0, 107, 60, 0.04);
+}
+
 /* User Badge in Header */
 .zen-user-badge {
   background-color: rgba(255, 255, 255, 0.15);
@@ -205,4 +247,161 @@ body {
   border: 1px solid var(--color-border-subtle);
   border-radius: 6px;
   font-size: 0.875rem;
-}
+}
+
+/* -------------------------------------------------------------------------
+   Feature 7: My Tickets Table, Badges, Mobile Cards & Feedback States
+   ------------------------------------------------------------------------- */
+
+/* Data Table */
+.zen-table-container {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.zen-table {
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.zen-table thead th {
+  background-color: #f8faf9;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+  white-space: nowrap;
+}
+
+.zen-table thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.zen-table thead th.sortable:hover {
+  background-color: var(--color-pale-green);
+  color: var(--color-primary-green);
+}
+
+.zen-table tbody td {
+  padding: 0.875rem 1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #edf2ef;
+  font-size: 0.875rem;
+}
+
+.zen-table tbody tr:hover {
+  background-color: var(--color-pale-green);
+}
+
+.zen-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Badges - Status */
+.badge-status-new {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.badge-status-assigned,
+.badge-status-in-progress {
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.badge-status-pending-requester {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+  border: 1px solid #e9d5ff;
+}
+
+.badge-status-resolved,
+.badge-status-closed {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.badge-status-cancelled {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+}
+
+/* Badges - Priority */
+.badge-priority-urgent {
+  background-color: #fdf2f2;
+  color: #b3261e;
+  border: 1px solid #fecaca;
+  font-weight: 600;
+}
+
+.badge-priority-high {
+  background-color: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+.badge-priority-medium {
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.badge-priority-low {
+  background-color: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+/* Mobile Stacked Card Layout */
+.zen-ticket-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.zen-ticket-card:hover {
+  border-color: var(--color-secondary-green);
+}
+
+/* Skeleton Loading Animation */
+@keyframes zen-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.zen-skeleton-bar {
+  height: 1rem;
+  background-color: #e2e8f0;
+  border-radius: 4px;
+  animation: zen-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Pagination buttons */
+.page-item.active .page-link {
+  background-color: var(--color-primary-green);
+  border-color: var(--color-primary-green);
+  color: #ffffff;
+}
+
+.page-link {
+  color: var(--color-primary-green);
+}
+
+.page-link:hover {
+  background-color: var(--color-pale-green);
+  color: var(--color-secondary-green);
+}
+

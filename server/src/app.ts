@@ -112,6 +112,7 @@ app.get("/api/related-systems", async (_req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 import { uploadMiddleware } from "./middleware/upload.js";
 import { createTicket } from "./controllers/tickets.controller.js";
+import { listTickets } from "./controllers/tickets-list.controller.js";
 
 const handleTicketUpload = (req: Request, res: Response, next: express.NextFunction) => {
   uploadMiddleware.array("attachments", 5)(req, res, (err: any) => {
@@ -149,6 +150,12 @@ const handleTicketUpload = (req: Request, res: Response, next: express.NextFunct
 
 app.post("/api/tickets", handleTicketUpload, createTicket);
 app.post("/api/v1/tickets", handleTicketUpload, createTicket);
+
+// ---------------------------------------------------------------------------
+// Feature 7 — My Tickets List, Search, Filters, Sorting & Pagination
+// ---------------------------------------------------------------------------
+app.get("/api/tickets", listTickets);
+app.get("/api/v1/tickets", listTickets);
 
 export default app;
 
