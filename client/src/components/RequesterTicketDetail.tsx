@@ -56,33 +56,34 @@ function formatDate(isoString: string): string {
 function getStatusBadgeClass(status: string): string {
   switch (status) {
     case "NEW":
-      return "bg-info-subtle text-info-emphasis border border-info-subtle";
+      return "badge-status-new";
     case "ASSIGNED":
+      return "badge-status-assigned";
     case "IN_PROGRESS":
-      return "bg-primary-subtle text-primary-emphasis border border-primary-subtle";
+      return "badge-status-in-progress";
     case "PENDING_REQUESTER":
-      return "bg-warning-subtle text-warning-emphasis border border-warning-subtle";
+      return "badge-status-pending-requester";
     case "RESOLVED":
-      return "bg-success-subtle text-success-emphasis border border-success-subtle";
+      return "badge-status-resolved";
     case "CLOSED":
-      return "bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle";
+      return "badge-status-closed";
     case "CANCELLED":
-      return "bg-dark-subtle text-dark-emphasis border border-dark-subtle";
+      return "badge-status-cancelled";
     default:
-      return "bg-light text-dark border";
+      return "bg-secondary text-white";
   }
 }
 
 function getPriorityBadgeClass(priority: string): string {
   switch (priority) {
-    case "LOW":
-      return "bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle";
-    case "MEDIUM":
-      return "bg-primary-subtle text-primary-emphasis border border-primary-subtle";
-    case "HIGH":
-      return "bg-warning-subtle text-warning-emphasis border border-warning-subtle";
     case "URGENT":
-      return "bg-danger-subtle text-danger-emphasis border border-danger-subtle";
+      return "badge-priority-urgent";
+    case "HIGH":
+      return "badge-priority-high";
+    case "MEDIUM":
+      return "badge-priority-medium";
+    case "LOW":
+      return "badge-priority-low";
     default:
       return "bg-light text-dark border";
   }
@@ -136,7 +137,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
         <div className="d-flex align-items-center mb-4">
           <button
             type="button"
-            className="btn btn-outline-secondary btn-sm"
+            className="btn btn-zen-secondary btn-sm"
             onClick={onBack}
           >
             &larr; Back to My Tickets
@@ -159,7 +160,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
         <div className="d-flex align-items-center mb-4">
           <button
             type="button"
-            className="btn btn-outline-secondary btn-sm"
+            className="btn btn-zen-secondary btn-sm"
             onClick={onBack}
           >
             &larr; Back to My Tickets
@@ -188,7 +189,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
         <div className="d-flex align-items-center mb-4">
           <button
             type="button"
-            className="btn btn-outline-secondary btn-sm"
+            className="btn btn-zen-secondary btn-sm"
             onClick={onBack}
           >
             &larr; Back to My Tickets
@@ -232,7 +233,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
         </nav>
         <button
           type="button"
-          className="btn btn-outline-secondary btn-sm"
+          className="btn btn-zen-secondary btn-sm"
           onClick={onBack}
         >
           &larr; Back to My Tickets
@@ -279,14 +280,14 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
 
                   <div className="col-sm-4 text-muted fw-medium">Category:</div>
                   <div className="col-sm-8 text-dark">
-                    <span className="badge bg-white text-dark border me-1">
+                    <span className="badge bg-light text-dark border me-1">
                       {ticket.category.name}
                     </span>
                   </div>
 
                   <div className="col-sm-4 text-muted fw-medium">Related System:</div>
                   <div className="col-sm-8 text-dark">
-                    <span className="badge bg-white text-dark border">
+                    <span className="badge bg-light text-dark border">
                       {ticket.relatedSystem.name}
                     </span>
                   </div>

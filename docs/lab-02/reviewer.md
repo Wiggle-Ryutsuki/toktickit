@@ -6,10 +6,10 @@
 ## Pull Requests I authored (reviewed by my partner)
 | PR | Branch | Reviewer verdict |
 |----|--------|------------------|
-| Feat 5: Development Requester Context & Reference Data Implemented #15 | feature/5-dev-requester | Foundation is sound. |
-|  | feature/6-create-ticket |  |
-|  | feature/7-my-tickets |  |
-|  | feature/8-ticket-detail-attachments |  |
+| https://github.com/Wiggle-Ryutsuki/toktickit/pull/15 | feature/5-dev-requester | Foundation is sound. |
+| https://github.com/Wiggle-Ryutsuki/toktickit/pull/17 | feature/6-create-ticket |  |
+| https://github.com/Wiggle-Ryutsuki/toktickit/pull/20 | feature/7-my-tickets | Things are in order |
+| https://github.com/Wiggle-Ryutsuki/toktickit/pull/21 | feature/8-ticket-detail-attachments |  |
 
 **Reviewer comment I received:** 
 **How I responded:** 
