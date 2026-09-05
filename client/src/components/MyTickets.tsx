@@ -288,7 +288,7 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }: MyTicketsP
             View, track, search, and manage all your submitted IT support requests.
           </p>
         </div>
-        <div>
+        <div className="d-none d-md-block">
           <button
             type="button"
             className="btn btn-zen-primary d-inline-flex align-items-center gap-2"
@@ -305,7 +305,7 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }: MyTicketsP
       <div className="zen-card p-3 mb-4">
         <div className="row g-2 align-items-center">
           {/* Search Input */}
-          <div className="col-12 col-md-4">
+          <div className="col-12 col-md-4 col-lg-2">
             <div className="input-group">
               <span className="input-group-text bg-white border-end-0 text-muted">🔍</span>
               <input
@@ -336,7 +336,7 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }: MyTicketsP
           </div>
 
           {/* Category Dropdown */}
-          <div className="col-6 col-md-2">
+          <div className="col-6 col-md-4 col-lg-2">
             <select
               className="form-select"
               value={categoryId}
@@ -356,7 +356,7 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }: MyTicketsP
           </div>
 
           {/* Requested Priority Dropdown */}
-          <div className="col-6 col-md-2">
+          <div className="col-6 col-md-4 col-lg-2">
             <select
               className="form-select"
               value={requestedPriority}
@@ -366,7 +366,26 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }: MyTicketsP
               }}
               aria-label="Filter by Requested Priority"
             >
-              <option value="ALL">All Priorities</option>
+              <option value="ALL">All Req. Priorities</option>
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+              <option value="URGENT">Urgent</option>
+            </select>
+          </div>
+
+          {/* IT Priority Dropdown */}
+          <div className="col-6 col-md-4 col-lg-2">
+            <select
+              className="form-select"
+              value={itPriority}
+              onChange={(e) => {
+                setItPriority(e.target.value);
+                setPage(1);
+              }}
+              aria-label="Filter by IT Priority"
+            >
+              <option value="ALL">All IT Priorities</option>
               <option value="LOW">Low</option>
               <option value="MEDIUM">Medium</option>
               <option value="HIGH">High</option>
@@ -375,7 +394,7 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }: MyTicketsP
           </div>
 
           {/* Current Status Dropdown */}
-          <div className="col-6 col-md-2">
+          <div className="col-6 col-md-4 col-lg-2">
             <select
               className="form-select"
               value={status}
@@ -397,7 +416,7 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }: MyTicketsP
           </div>
 
           {/* Clear Filters Button */}
-          <div className="col-6 col-md-2 text-md-end">
+          <div className="col-12 col-md-4 col-lg-2 text-md-end">
             <button
               type="button"
               className="btn btn-outline-secondary w-100"

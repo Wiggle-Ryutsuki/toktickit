@@ -41,7 +41,9 @@ export default function Navbar({ activeView = "tickets", onNavigate }: NavbarPro
                 onNavigate?.("tickets");
               }}
             >
-              <span style={{ fontSize: "1.25rem" }}>🎫</span>
+              <span className="material-symbols-outlined" style={{ fontSize: "1.5rem" }}>
+                avg_pace
+              </span>
               <span>TokTickIT</span>
             </a>
 
