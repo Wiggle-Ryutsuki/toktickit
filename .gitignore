@@ -17,3 +17,4 @@ server/prisma/*.db
 *TokTickIT-System-Level-SDS-v1.0.pdf
 *ai-prompts.md
 docs/features/
+server/uploads/
