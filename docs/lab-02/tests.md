@@ -50,22 +50,24 @@ TokTickIT employs a multi-tiered testing strategy ensuring that all functional r
 | **UI-07** | UI | FR-12, FR-13 | Ticket Detail Read-Only View | Displays all ticket fields in read-only mode with status & priority badges | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Pass |
 | **UI-08** | UI | FR-15, BR-09, AC-08 | Attachment Section & Soft-Removal Modal | Prompts for confirmation and reason; updates attachment display to tombstone | `client/tests/lab-02/AttachmentSection.test.tsx` | Pass |
 | **UI-09** | UI | BR-12 | Error Resilience and Form Recovery | Simulates backend 500 failure; ensures form inputs and entered data are retained | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
+| **E2E-01** | E2E | AC-01, AC-02, AC-03 | Complete Requester Ticketing Flow | Select requester &rarr; create ticket &rarr; view in My Tickets &rarr; switch requester (verify isolation) | `e2e/lab-02/requester-ticket-flow.spec.ts` | Pass |
+| **E2E-02** | E2E | AC-08, FR-14, FR-15 | Attachment Lifecycle Flow | Upload attachment on creation &rarr; view on detail &rarr; download &rarr; soft-remove with reason | `e2e/lab-02/attachment-lifecycle.spec.ts` | Pass |
 
 ---
 
 ## 3. Acceptance-Criterion Traceability Matrix
 
-| Acceptance Criterion | Description | Covering Tests (Unit / API / UI) |
+| Acceptance Criterion | Description | Covering Tests (Unit / API / UI / E2E) |
 | :--- | :--- | :--- |
-| **AC-01** | Ticket Creation Happy Path & Ticket Number Generation | `UT-01`, `API-03`, `UI-04` |
-| **AC-02** | Requester Selection Gate & Switching Context | `API-01`, `UI-01` |
-| **AC-03** | Cross-Requester Ticket List Isolation | `API-05`, `UI-05` |
+| **AC-01** | Ticket Creation Happy Path & Ticket Number Generation | `UT-01`, `API-03`, `UI-04`, `E2E-01` |
+| **AC-02** | Requester Selection Gate & Switching Context | `API-01`, `UI-01`, `E2E-01` |
+| **AC-03** | Cross-Requester Ticket List Isolation | `API-05`, `UI-05`, `E2E-01` |
 | **AC-04** | Cross-Requester Detail Access Forbidden | `API-07`, `UI-07` |
 | **AC-05** | Create Ticket Validation Failure & Field Error Placement | `UT-03`, `API-04`, `UI-03` |
 | **AC-06** | Attachment File Size & Type Validation | `UT-02`, `API-08`, `UI-08` |
 | **AC-07** | Attachment Max Limit Enforcement (5 active files) | `API-08`, `UI-08` |
-| **AC-08** | Attachment Soft-Removal with Reason & Download Blocking | `API-09`, `API-10`, `UI-08` |
-| **AC-09** | Search and Filtering in My Tickets | `API-06`, `UI-06` |
+| **AC-08** | Attachment Soft-Removal with Reason & Download Blocking | `API-09`, `API-10`, `UI-08`, `E2E-02` |
+| **AC-09** | Search and Filtering in My Tickets | `API-06`, `UI-06`, `E2E-01` |
 | **AC-10** | No-Results vs Empty List State | `UI-05`, `UI-06` |
 
 ---
@@ -107,6 +109,13 @@ TokTickIT employs a multi-tiered testing strategy ensuring that all functional r
   cd client
   npm run test
   ```
+* **Run End-to-End Browser Tests** (from project root `toktickit`):
+  ```bash
+  # From project root:
+  npx playwright test
+  # Or:
+  npm run test:e2e
+  ```
 
 ---
 
@@ -117,6 +126,7 @@ TokTickIT employs a multi-tiered testing strategy ensuring that all functional r
 | Server Unit Tests | 13 | 13 | 0 | 0 | Pass |
 | Server API Integration Tests | 45 | 45 | 0 | 0 | Pass |
 | Client UI Component Tests | 29 | 29 | 0 | 0 | Pass |
+| Playwright E2E Tests | 2 | 2 | 0 | 0 | Pass |
 
 ---
 

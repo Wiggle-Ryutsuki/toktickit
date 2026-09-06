@@ -25,9 +25,9 @@ function getStatusBadgeClass(status) {
         case "ASSIGNED":
             return "badge-status-assigned";
         case "IN_PROGRESS":
-            return "badge-status-inprogress";
+            return "badge-status-in-progress";
         case "PENDING_REQUESTER":
-            return "badge-status-pending";
+            return "badge-status-pending-requester";
         case "RESOLVED":
             return "badge-status-resolved";
         case "CLOSED":
