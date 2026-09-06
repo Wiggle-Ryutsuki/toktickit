@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRequester } from "../context/RequesterContext.js";
 
 export interface NavbarProps {
-  activeView?: "tickets" | "create-ticket";
+  activeView?: "tickets" | "create-ticket" | "ticket-detail";
   onNavigate?: (view: "tickets" | "create-ticket") => void;
 }
 

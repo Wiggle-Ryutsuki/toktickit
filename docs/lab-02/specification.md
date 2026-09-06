@@ -337,20 +337,20 @@ Endpoints are exposed under `/api` (and aliased to `/api/v1` for future compatib
 ## 10. Definition of Done (DoD)
 
 ### 10.1. Product Completion Checklist
-- [ ] All 4 feature increments (Feature-5 through Feature-8) implemented and compliant with specifications.
-- [ ] Prisma schema migration and idempotent seed script (`prisma/seed.ts`) fully functional.
-- [ ] All Acceptance Criteria (AC-01 through AC-10) verified with automated tests.
-- [ ] Unit tests, API integration tests, and UI component tests passing with zero skips or failures.
-- [ ] Responsive layout validated across Desktop (&ge;992px), Tablet (768–991px), and Mobile (<768px).
-- [ ] Zen Green UI styles applied consistently across all screens, badges, and modals.
-- [ ] Safe error handling and form state recovery verified during server failure.
+- [ x ] All 4 feature increments (Feature-5 through Feature-8) implemented and compliant with specifications.
+- [ x ] Prisma schema migration and idempotent seed script (`prisma/seed.ts`) fully functional.
+- [ x ] All Acceptance Criteria (AC-01 through AC-10) verified with automated tests.
+- [ x ] Unit tests, API integration tests, and UI component tests passing with zero skips or failures.
+- [ x ] Responsive layout validated across Desktop (&ge;992px), Tablet (768–991px), and Mobile (<768px).
+- [ x ] Zen Green UI styles applied consistently across all screens, badges, and modals.
+- [ x ] Safe error handling and form state recovery verified during server failure.
 
 ### 10.2. Course Delivery Checklist
-- [ ] GitHub Issues created for Issue 5 through Issue 8 with appropriate Kanban tags.
-- [ ] Feature branches branched from `lab2-staging` and integrated via reviewed PRs.
-- [ ] `reviewer.md` and `ai-use.md` maintained and completed.
-- [ ] Visual inspection screenshots captured and stored in `artifacts/lab-02/screenshots/`.
-- [ ] Final release PR merged from `lab2-staging` to `main`.
+- [ x ] GitHub Issues created for Issue 5 through Issue 8 with appropriate Kanban tags.
+- [ x ] Feature branches branched from `lab2-staging` and integrated via reviewed PRs.
+- [ x ] `reviewer.md` and `ai-use.md` maintained and completed.
+- [ x ] Visual inspection screenshots captured and stored in `artifacts/lab-02/screenshots/`.
+- [ x ] Final release PR merged from `lab2-staging` to `main`.
 
 ---
 
