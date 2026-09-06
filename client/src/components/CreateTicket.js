@@ -6,7 +6,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 const MAX_ATTACHMENTS = 5;
 const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".pdf"];
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
-export default function CreateTicket({ onCancel, onTicketCreated }) {
+export default function CreateTicket({ onCancel, onTicketCreated, onViewDetail }) {
     const { selectedRequester } = useRequester();
     const [categories, setCategories] = useState([]);
     const [systems, setSystems] = useState([]);
@@ -15,7 +15,7 @@ export default function CreateTicket({ onCancel, onTicketCreated }) {
     // Form Fields
     const [categoryId, setCategoryId] = useState("");
     const [relatedSystemId, setRelatedSystemId] = useState("");
-    const [requestedPriority, setRequestedPriority] = useState("MEDIUM");
+    const [requestedPriority, setRequestedPriority] = useState("");
     const [summary, setSummary] = useState("");
     const [description, setDescription] = useState("");
     const [attachments, setAttachments] = useState([]);
@@ -147,6 +147,9 @@ export default function CreateTicket({ onCancel, onTicketCreated }) {
         if (!relatedSystemId) {
             newErrors.relatedSystemId = "Please select a related system.";
         }
+        if (!requestedPriority) {
+            newErrors.requestedPriority = "Please select a requested priority.";
+        }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -209,6 +212,8 @@ export default function CreateTicket({ onCancel, onTicketCreated }) {
                             apiFieldErrors.categoryId = fe.message;
                         if (fe.field === "relatedSystemId")
                             apiFieldErrors.relatedSystemId = fe.message;
+                        if (fe.field === "requestedPriority")
+                            apiFieldErrors.requestedPriority = fe.message;
                     }
                     setErrors(apiFieldErrors);
                 }
@@ -231,7 +236,11 @@ export default function CreateTicket({ onCancel, onTicketCreated }) {
     };
     // If successfully created, render Success State
     if (createdTicket) {
-        return (_jsx("div", { className: "container py-4", style: { maxWidth: "1140px" }, children: _jsxs("div", { className: "zen-success-banner shadow-sm", role: "status", children: [_jsxs("div", { className: "d-flex align-items-center mb-3", children: [_jsx("span", { className: "fs-3 me-2 text-success", children: "\u2714" }), _jsx("h3", { className: "mb-0 text-success fw-semibold", children: "Ticket created successfully!" })] }), _jsxs("p", { className: "fs-5 mb-3", children: ["Your ticket number is ", _jsx("strong", { className: "text-decoration-underline", children: createdTicket.ticketNo }), "."] }), _jsx("p", { className: "text-muted mb-4", children: "Our IT Support team has received your incident report and will begin reviewing it shortly." }), _jsxs("div", { className: "d-flex gap-3", children: [_jsx("button", { type: "button", className: "btn btn-zen-primary", onClick: () => alert(`View details for ticket ${createdTicket.ticketNo} (Available in Feature 8)`), children: "View Ticket Details" }), _jsx("button", { type: "button", className: "btn btn-zen-secondary", onClick: onCancel || (() => setCreatedTicket(null)), children: "Back to My Tickets" })] })] }) }));
+        return (_jsx("div", { className: "container py-4", style: { maxWidth: "1140px" }, children: _jsxs("div", { className: "zen-success-banner shadow-sm", role: "status", children: [_jsxs("div", { className: "d-flex align-items-center mb-3", children: [_jsx("span", { className: "fs-3 me-2 text-success", children: "\u2714" }), _jsx("h3", { className: "mb-0 text-success fw-semibold", children: "Ticket created successfully!" })] }), _jsxs("p", { className: "fs-5 mb-3", children: ["Your ticket number is ", _jsx("strong", { className: "text-decoration-underline", children: createdTicket.ticketNo }), "."] }), _jsx("p", { className: "text-muted mb-4", children: "Our IT Support team has received your incident report and will begin reviewing it shortly." }), _jsxs("div", { className: "d-flex gap-3", children: [_jsx("button", { type: "button", className: "btn btn-zen-primary", onClick: () => {
+                                    if (onViewDetail) {
+                                        onViewDetail(createdTicket.id);
+                                    }
+                                }, children: "View Ticket Details" }), _jsx("button", { type: "button", className: "btn btn-zen-secondary", onClick: onCancel || (() => setCreatedTicket(null)), children: "Back to My Tickets" })] })] }) }));
     }
     return (_jsxs("div", { className: "container py-4", style: { maxWidth: "1140px" }, children: [_jsx("nav", { "aria-label": "breadcrumb", className: "mb-3", children: _jsxs("ol", { className: "breadcrumb", children: [_jsx("li", { className: "breadcrumb-item", children: _jsx("a", { href: "#my-tickets", onClick: (e) => { e.preventDefault(); onCancel?.(); }, className: "text-decoration-none", style: { color: "var(--color-primary-green)" }, children: "My Tickets" }) }), _jsx("li", { className: "breadcrumb-item active", "aria-current": "page", children: "Create Ticket" })] }) }), _jsx("h1", { className: "h3 fw-bold mb-4", style: { color: "var(--color-text-primary)" }, children: "Create IT Support Ticket" }), globalError && (_jsxs("div", { className: "alert alert-danger mb-4 shadow-sm", role: "alert", children: [_jsx("strong", { children: "Submission Error:" }), " ", globalError] })), refDataError && (_jsx("div", { className: "alert alert-warning mb-4", role: "alert", children: refDataError })), _jsxs("form", { onSubmit: handleSubmit, noValidate: true, children: [_jsx("div", { className: "zen-card p-3 mb-4 bg-light", children: _jsxs("div", { className: "row g-3", children: [_jsxs("div", { className: "col-md-4", children: [_jsx("label", { htmlFor: "ticketNo", className: "form-label small fw-semibold text-muted mb-1", children: "Ticket Number" }), _jsx("input", { id: "ticketNo", type: "text", readOnly: true, className: "form-control bg-readonly", value: `TKT-${currentYear}-##### (Auto)`, tabIndex: -1 })] }), _jsxs("div", { className: "col-md-4", children: [_jsx("label", { htmlFor: "ticketDate", className: "form-label small fw-semibold text-muted mb-1", children: "Ticket Date" }), _jsx("input", { id: "ticketDate", type: "text", readOnly: true, className: "form-control bg-readonly", value: formattedDate, tabIndex: -1 })] }), _jsxs("div", { className: "col-md-4", children: [_jsx("label", { htmlFor: "requester", className: "form-label small fw-semibold text-muted mb-1", children: "Requester" }), _jsx("input", { id: "requester", type: "text", readOnly: true, className: "form-control bg-readonly", value: selectedRequester
                                                 ? `${selectedRequester.displayName} (${selectedRequester.email})`
@@ -243,7 +252,11 @@ export default function CreateTicket({ onCancel, onTicketCreated }) {
                                                     setRelatedSystemId(e.target.value);
                                                     if (errors.relatedSystemId)
                                                         setErrors((prev) => ({ ...prev, relatedSystemId: undefined }));
-                                                }, disabled: loadingRefData, children: [_jsx("option", { value: "", children: loadingRefData ? "Loading systems..." : "Select Related System..." }), systems.map((s) => (_jsx("option", { value: s.id, children: s.name }, s.id)))] }), errors.relatedSystemId && (_jsx("div", { className: "zen-field-error", role: "alert", children: errors.relatedSystemId }))] }), _jsxs("div", { className: "col-md-4", children: [_jsxs("label", { htmlFor: "requestedPriority", className: "form-label fw-semibold", children: ["Requested Priority ", _jsx("span", { className: "text-danger", children: "*" })] }), _jsxs("select", { id: "requestedPriority", className: "form-select", value: requestedPriority, onChange: (e) => setRequestedPriority(e.target.value), children: [_jsx("option", { value: "LOW", children: "Low" }), _jsx("option", { value: "MEDIUM", children: "Medium" }), _jsx("option", { value: "HIGH", children: "High" }), _jsx("option", { value: "URGENT", children: "Urgent" })] })] })] }), _jsxs("div", { className: "mb-4", children: [_jsxs("div", { className: "d-flex justify-content-between align-items-center mb-1", children: [_jsxs("label", { htmlFor: "summary", className: "form-label fw-semibold mb-0", children: ["Summary ", _jsx("span", { className: "text-danger", children: "*" })] }), _jsxs("span", { className: "small text-muted", children: [summary.length, " / 120"] })] }), _jsx("input", { id: "summary", type: "text", className: `form-control ${errors.summary ? "is-invalid" : ""}`, placeholder: "Brief summary of the issue", value: summary, maxLength: 120, onChange: (e) => {
+                                                }, disabled: loadingRefData, children: [_jsx("option", { value: "", children: loadingRefData ? "Loading systems..." : "Select Related System..." }), systems.map((s) => (_jsx("option", { value: s.id, children: s.name }, s.id)))] }), errors.relatedSystemId && (_jsx("div", { className: "zen-field-error", role: "alert", children: errors.relatedSystemId }))] }), _jsxs("div", { className: "col-md-4", children: [_jsxs("label", { htmlFor: "requestedPriority", className: "form-label fw-semibold", children: ["Requested Priority ", _jsx("span", { className: "text-danger", children: "*" })] }), _jsxs("select", { id: "requestedPriority", className: `form-select ${errors.requestedPriority ? "is-invalid" : ""}`, value: requestedPriority, onChange: (e) => {
+                                                    setRequestedPriority(e.target.value);
+                                                    if (errors.requestedPriority)
+                                                        setErrors((prev) => ({ ...prev, requestedPriority: undefined }));
+                                                }, children: [_jsx("option", { value: "", children: "Select Priority..." }), _jsx("option", { value: "LOW", children: "Low" }), _jsx("option", { value: "MEDIUM", children: "Medium" }), _jsx("option", { value: "HIGH", children: "High" }), _jsx("option", { value: "URGENT", children: "Urgent" })] }), errors.requestedPriority && (_jsx("div", { className: "zen-field-error", role: "alert", children: errors.requestedPriority }))] })] }), _jsxs("div", { className: "mb-4", children: [_jsxs("div", { className: "d-flex justify-content-between align-items-center mb-1", children: [_jsxs("label", { htmlFor: "summary", className: "form-label fw-semibold mb-0", children: ["Summary ", _jsx("span", { className: "text-danger", children: "*" })] }), _jsxs("span", { className: "small text-muted", children: [summary.length, " / 120"] })] }), _jsx("input", { id: "summary", type: "text", className: `form-control ${errors.summary ? "is-invalid" : ""}`, placeholder: "Brief summary of the issue", value: summary, maxLength: 120, onChange: (e) => {
                                             setSummary(e.target.value);
                                             if (errors.summary)
                                                 setErrors((prev) => ({ ...prev, summary: undefined }));

@@ -17,3 +17,7 @@ server/prisma/*.db
 *TokTickIT-System-Level-SDS-v1.0.pdf
 *ai-prompts.md
 docs/features/
+server/uploads/
+# test output
+test-results/
+playwright-report/

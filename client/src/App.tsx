@@ -4,6 +4,8 @@ import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
 import Navbar from "./components/Navbar.js";
 import RequesterSelector from "./components/RequesterSelector.js";
 import CreateTicket from "./components/CreateTicket.js";
+import MyTickets from "./components/MyTickets.js";
+import RequesterTicketDetail from "./components/RequesterTicketDetail.js";
 import "./theme.css";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
@@ -11,15 +13,25 @@ type UiState = "idle" | "loading" | "success" | "error";
 
 function AppContent() {
   const { selectedRequester, isSelectorOpen } = useRequester();
-  const [activeView, setActiveView] = useState<"tickets" | "create-ticket">("tickets");
+  const [activeView, setActiveView] = useState<"tickets" | "create-ticket" | "ticket-detail">("tickets");
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const handleNavigate = (view: "tickets" | "create-ticket" | "ticket-detail") => {
+    if (view !== "ticket-detail") {
+      setSelectedTicketId(null);
+    }
+    setActiveView(view);
+  };
+
+  const handleViewDetail = (id: number) => {
+    setSelectedTicketId(id);
+    setActiveView("ticket-detail");
+  };
+
   async function handleCheck() {
-    // TODO(Issue 4): set loading, call checkSystem(), then either
-    //   - success: store categories and show Online + the list, or
-    //   - error: show Offline + a useful message.
     setState("loading");
     setError(null);
     try {
@@ -33,75 +45,82 @@ function AppContent() {
   }
 
   return (
-    <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: "var(--color-page-bg)" }}>
-      <Navbar activeView={activeView} onNavigate={setActiveView} />
+    <div className="min-vh-100 d-flex flex-column pb-5 pb-md-0" style={{ backgroundColor: "var(--color-page-bg)" }}>
+      <Navbar activeView={activeView} onNavigate={handleNavigate} />
 
       {(!selectedRequester || isSelectorOpen) && <RequesterSelector />}
 
-      {activeView === "create-ticket" ? (
-        <CreateTicket onCancel={() => setActiveView("tickets")} />
+      {activeView === "ticket-detail" && selectedTicketId !== null ? (
+        <RequesterTicketDetail
+          ticketId={selectedTicketId}
+          onBack={() => {
+            setSelectedTicketId(null);
+            setActiveView("tickets");
+          }}
+        />
+      ) : activeView === "create-ticket" ? (
+        <CreateTicket
+          onCancel={() => setActiveView("tickets")}
+          onViewDetail={handleViewDetail}
+        />
       ) : (
-        <main className="container py-4 flex-grow-1" style={{ maxWidth: 800 }}>
-          {selectedRequester && (
-            <div className="alert alert-success d-flex align-items-center justify-content-between py-2 px-3 mb-4" role="status">
-              <div>
-                <span className="fw-semibold">Active Requester Context:</span> {selectedRequester.displayName} ({selectedRequester.email})
+        <>
+          <MyTickets
+            onNavigateCreate={() => setActiveView("create-ticket")}
+            onViewDetail={handleViewDetail}
+          />
+
+          {/* Lab 1 Baseline: System Status Check (Preserved for Non-Regression) */}
+          <div className="container py-3 px-lg-5" style={{ maxWidth: 1280 }}>
+            <div className="card border-0 bg-transparent mb-4">
+              <div className="card-body p-0">
+                <details className="text-muted small">
+                  <summary className="cursor-pointer fw-semibold mb-2">
+                    Lab 1 Service Connectivity Diagnostics
+                  </summary>
+                  <div className="zen-card p-3 mt-2" style={{ maxWidth: 600 }}>
+                    <h6 className="fw-bold mb-2">System Status Check</h6>
+                    <button
+                      className="btn btn-sm btn-zen-secondary mb-2"
+                      onClick={handleCheck}
+                      disabled={state === "loading"}
+                    >
+                      {state === "loading" ? "Loading…" : "Check System"}
+                    </button>
+
+                    {state === "error" && (
+                      <div className="alert alert-danger py-2 px-3 mt-2" role="alert">
+                        <h6 className="alert-heading mb-1 small">Status: Offline</h6>
+                        <p className="mb-0 small">{error ?? "Unable to connect to TokTickIT API server"}</p>
+                      </div>
+                    )}
+
+                    {state === "loading" && (
+                      <div className="alert alert-info py-2 px-3 mt-2" role="alert">
+                        <h6 className="alert-heading mb-1 small">Status: Loading...</h6>
+                        <p className="mb-0 small">Loading categories...</p>
+                      </div>
+                    )}
+
+                    {state === "success" && (
+                      <div className="alert alert-success py-2 px-3 mt-2" role="alert">
+                        <h6 className="alert-heading mb-1 small">Status: Online</h6>
+                        <p className="mb-0 small">{error ?? "Connected to TokTickIT API server"}</p>
+                        <ul className="list-group list-group-flush mt-2 small">
+                          {categories.map((cat) => (
+                            <li key={cat.id} className="list-group-item bg-transparent py-1 px-0">
+                              {cat.name}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </details>
               </div>
-              <span className="badge bg-success">Role: {selectedRequester.role}</span>
             </div>
-          )}
-
-        <div className="zen-card p-4 mb-4">
-          <h2 className="h4 mb-3 fw-bold" style={{ color: "var(--color-primary-green)" }}>
-            System Status Check
-          </h2>
-          <p className="text-muted small mb-3">
-            Verify backend database and API connectivity from Lab 1 baseline.
-          </p>
-
-          <button
-            className="btn btn-zen-primary"
-            onClick={handleCheck}
-            disabled={state === "loading"}
-          >
-            {state === "loading" ? "Loading…" : "Check System"}
-          </button>
-
-          {/* Error */}
-          {state === "error" && (
-            <div className="alert alert-danger mt-4" role="alert">
-              <h5 className="alert-heading mb-1">Status: Offline</h5>
-              <p className="mb-0">{error ?? "Unable to connect to TokTickIT API server"}</p>
-            </div>
-          )}
-
-          {/* Loading */}
-          {state === "loading" && (
-            <div className="alert alert-info mt-4" role="alert">
-              <h5 className="alert-heading mb-1">Status: Loading...</h5>
-              <p className="mb-0">Loading categories...</p>
-            </div>
-          )}
-
-          {/* Success */}
-          {state === "success" && (
-            <>
-              <div className="alert alert-success mt-4" role="alert">
-                <h5 className="alert-heading mb-1">Status: Online</h5>
-                <p className="mb-0">{error ?? "Connected to TokTickIT API server"}</p>
-              </div>
-              <h6 className="mt-3">Categories ({categories.length})</h6>
-              <ul className="list-group mt-3">
-                {categories.map((cat) => (
-                  <li key={cat.id} className="list-group-item">
-                    {cat.name}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </div>
-      </main>
+          </div>
+        </>
       )}
     </div>
   );

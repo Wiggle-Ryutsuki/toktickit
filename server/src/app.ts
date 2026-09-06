@@ -112,6 +112,7 @@ app.get("/api/related-systems", async (_req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 import { uploadMiddleware } from "./middleware/upload.js";
 import { createTicket } from "./controllers/tickets.controller.js";
+import { listTickets } from "./controllers/tickets-list.controller.js";
 
 const handleTicketUpload = (req: Request, res: Response, next: express.NextFunction) => {
   uploadMiddleware.array("attachments", 5)(req, res, (err: any) => {
@@ -150,5 +151,88 @@ const handleTicketUpload = (req: Request, res: Response, next: express.NextFunct
 app.post("/api/tickets", handleTicketUpload, createTicket);
 app.post("/api/v1/tickets", handleTicketUpload, createTicket);
 
+// ---------------------------------------------------------------------------
+// Feature 7 — My Tickets List, Search, Filters, Sorting & Pagination
+// ---------------------------------------------------------------------------
+app.get("/api/tickets", listTickets);
+app.get("/api/v1/tickets", listTickets);
+
+// ---------------------------------------------------------------------------
+// Feature 8 — Ticket Detail (View Mode) & Attachment Lifecycle
+// ---------------------------------------------------------------------------
+import { getTicketDetail } from "./controllers/ticket-detail.controller.js";
+import {
+  uploadAttachment,
+  downloadAttachment,
+  softRemoveAttachment,
+} from "./controllers/attachments.controller.js";
+
+const handleSingleAttachmentUpload = (req: Request, res: Response, next: express.NextFunction) => {
+  uploadMiddleware.fields([
+    { name: "file", maxCount: 1 },
+    { name: "attachment", maxCount: 1 },
+  ])(req, res, (err: any) => {
+    if (err) {
+      const correlationId = `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({
+          error: {
+            code: "PAYLOAD_TOO_LARGE",
+            message: "File exceeds the maximum allowed size of 5 MB (5,242,880 bytes).",
+            correlationId,
+          },
+        });
+      }
+      if (err.code === "UNSUPPORTED_MEDIA_TYPE") {
+        return res.status(415).json({
+          error: {
+            code: "UNSUPPORTED_MEDIA_TYPE",
+            message: err.message,
+            correlationId,
+          },
+        });
+      }
+      return res.status(400).json({
+        error: {
+          code: "BAD_REQUEST",
+          message: err.message || "Failed to process multipart form upload.",
+          correlationId,
+        },
+      });
+    }
+
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+    if (files) {
+      if (files["file"] && files["file"].length > 0) {
+        req.file = files["file"][0];
+      } else if (files["attachment"] && files["attachment"].length > 0) {
+        req.file = files["attachment"][0];
+      }
+    }
+    next();
+  });
+};
+
+// Ticket Detail
+app.get("/api/tickets/:id", getTicketDetail);
+app.get("/api/v1/tickets/:id", getTicketDetail);
+
+// Attachment Upload
+app.post("/api/tickets/:id/attachments", handleSingleAttachmentUpload, uploadAttachment);
+app.post("/api/v1/tickets/:id/attachments", handleSingleAttachmentUpload, uploadAttachment);
+
+// Attachment Download (Nested & Direct Alias)
+app.get("/api/tickets/:id/attachments/:attachmentId", downloadAttachment);
+app.get("/api/v1/tickets/:id/attachments/:attachmentId", downloadAttachment);
+app.get("/api/attachments/:id/download", downloadAttachment);
+app.get("/api/v1/attachments/:id/download", downloadAttachment);
+
+// Attachment Soft-Removal (Nested & Direct Alias)
+app.delete("/api/tickets/:id/attachments/:attachmentId", softRemoveAttachment);
+app.delete("/api/v1/tickets/:id/attachments/:attachmentId", softRemoveAttachment);
+app.delete("/api/attachments/:id", softRemoveAttachment);
+app.delete("/api/v1/attachments/:id", softRemoveAttachment);
+
 export default app;
+
 

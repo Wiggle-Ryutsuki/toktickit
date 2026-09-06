@@ -5,17 +5,27 @@ import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
 import Navbar from "./components/Navbar.js";
 import RequesterSelector from "./components/RequesterSelector.js";
 import CreateTicket from "./components/CreateTicket.js";
+import MyTickets from "./components/MyTickets.js";
+import RequesterTicketDetail from "./components/RequesterTicketDetail.js";
 import "./theme.css";
 function AppContent() {
     const { selectedRequester, isSelectorOpen } = useRequester();
     const [activeView, setActiveView] = useState("tickets");
+    const [selectedTicketId, setSelectedTicketId] = useState(null);
     const [state, setState] = useState("idle");
     const [categories, setCategories] = useState([]);
     const [error, setError] = useState(null);
+    const handleNavigate = (view) => {
+        if (view !== "ticket-detail") {
+            setSelectedTicketId(null);
+        }
+        setActiveView(view);
+    };
+    const handleViewDetail = (id) => {
+        setSelectedTicketId(id);
+        setActiveView("ticket-detail");
+    };
     async function handleCheck() {
-        // TODO(Issue 4): set loading, call checkSystem(), then either
-        //   - success: store categories and show Online + the list, or
-        //   - error: show Offline + a useful message.
         setState("loading");
         setError(null);
         try {
@@ -28,7 +38,10 @@ function AppContent() {
             setState("error");
         }
     }
-    return (_jsxs("div", { className: "min-vh-100 d-flex flex-column", style: { backgroundColor: "var(--color-page-bg)" }, children: [_jsx(Navbar, { activeView: activeView, onNavigate: setActiveView }), (!selectedRequester || isSelectorOpen) && _jsx(RequesterSelector, {}), activeView === "create-ticket" ? (_jsx(CreateTicket, { onCancel: () => setActiveView("tickets") })) : (_jsxs("main", { className: "container py-4 flex-grow-1", style: { maxWidth: 800 }, children: [selectedRequester && (_jsxs("div", { className: "alert alert-success d-flex align-items-center justify-content-between py-2 px-3 mb-4", role: "status", children: [_jsxs("div", { children: [_jsx("span", { className: "fw-semibold", children: "Active Requester Context:" }), " ", selectedRequester.displayName, " (", selectedRequester.email, ")"] }), _jsxs("span", { className: "badge bg-success", children: ["Role: ", selectedRequester.role] })] })), _jsxs("div", { className: "zen-card p-4 mb-4", children: [_jsx("h2", { className: "h4 mb-3 fw-bold", style: { color: "var(--color-primary-green)" }, children: "System Status Check" }), _jsx("p", { className: "text-muted small mb-3", children: "Verify backend database and API connectivity from Lab 1 baseline." }), _jsx("button", { className: "btn btn-zen-primary", onClick: handleCheck, disabled: state === "loading", children: state === "loading" ? "Loading…" : "Check System" }), state === "error" && (_jsxs("div", { className: "alert alert-danger mt-4", role: "alert", children: [_jsx("h5", { className: "alert-heading mb-1", children: "Status: Offline" }), _jsx("p", { className: "mb-0", children: error ?? "Unable to connect to TokTickIT API server" })] })), state === "loading" && (_jsxs("div", { className: "alert alert-info mt-4", role: "alert", children: [_jsx("h5", { className: "alert-heading mb-1", children: "Status: Loading..." }), _jsx("p", { className: "mb-0", children: "Loading categories..." })] })), state === "success" && (_jsxs(_Fragment, { children: [_jsxs("div", { className: "alert alert-success mt-4", role: "alert", children: [_jsx("h5", { className: "alert-heading mb-1", children: "Status: Online" }), _jsx("p", { className: "mb-0", children: error ?? "Connected to TokTickIT API server" })] }), _jsxs("h6", { className: "mt-3", children: ["Categories (", categories.length, ")"] }), _jsx("ul", { className: "list-group mt-3", children: categories.map((cat) => (_jsx("li", { className: "list-group-item", children: cat.name }, cat.id))) })] }))] })] }))] }));
+    return (_jsxs("div", { className: "min-vh-100 d-flex flex-column pb-5 pb-md-0", style: { backgroundColor: "var(--color-page-bg)" }, children: [_jsx(Navbar, { activeView: activeView, onNavigate: handleNavigate }), (!selectedRequester || isSelectorOpen) && _jsx(RequesterSelector, {}), activeView === "ticket-detail" && selectedTicketId !== null ? (_jsx(RequesterTicketDetail, { ticketId: selectedTicketId, onBack: () => {
+                    setSelectedTicketId(null);
+                    setActiveView("tickets");
+                } })) : activeView === "create-ticket" ? (_jsx(CreateTicket, { onCancel: () => setActiveView("tickets"), onViewDetail: handleViewDetail })) : (_jsxs(_Fragment, { children: [_jsx(MyTickets, { onNavigateCreate: () => setActiveView("create-ticket"), onViewDetail: handleViewDetail }), _jsx("div", { className: "container py-3 px-lg-5", style: { maxWidth: 1280 }, children: _jsx("div", { className: "card border-0 bg-transparent mb-4", children: _jsx("div", { className: "card-body p-0", children: _jsxs("details", { className: "text-muted small", children: [_jsx("summary", { className: "cursor-pointer fw-semibold mb-2", children: "Lab 1 Service Connectivity Diagnostics" }), _jsxs("div", { className: "zen-card p-3 mt-2", style: { maxWidth: 600 }, children: [_jsx("h6", { className: "fw-bold mb-2", children: "System Status Check" }), _jsx("button", { className: "btn btn-sm btn-zen-secondary mb-2", onClick: handleCheck, disabled: state === "loading", children: state === "loading" ? "Loading…" : "Check System" }), state === "error" && (_jsxs("div", { className: "alert alert-danger py-2 px-3 mt-2", role: "alert", children: [_jsx("h6", { className: "alert-heading mb-1 small", children: "Status: Offline" }), _jsx("p", { className: "mb-0 small", children: error ?? "Unable to connect to TokTickIT API server" })] })), state === "loading" && (_jsxs("div", { className: "alert alert-info py-2 px-3 mt-2", role: "alert", children: [_jsx("h6", { className: "alert-heading mb-1 small", children: "Status: Loading..." }), _jsx("p", { className: "mb-0 small", children: "Loading categories..." })] })), state === "success" && (_jsxs("div", { className: "alert alert-success py-2 px-3 mt-2", role: "alert", children: [_jsx("h6", { className: "alert-heading mb-1 small", children: "Status: Online" }), _jsx("p", { className: "mb-0 small", children: error ?? "Connected to TokTickIT API server" }), _jsx("ul", { className: "list-group list-group-flush mt-2 small", children: categories.map((cat) => (_jsx("li", { className: "list-group-item bg-transparent py-1 px-0", children: cat.name }, cat.id))) })] }))] })] }) }) }) })] }))] }));
 }
 export default function App() {
     return (_jsx(RequesterProvider, { children: _jsx(AppContent, {}) }));

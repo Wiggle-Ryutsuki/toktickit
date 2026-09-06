@@ -66,9 +66,9 @@ describe("Create Ticket Screen (UI-02, UI-03, UI-04, UI-09)", () => {
             expect(screen.getByRole("option", { name: "Hardware" })).toBeInTheDocument();
             expect(screen.getByRole("option", { name: "Corporate Laptop" })).toBeInTheDocument();
         });
-        // Requested priority defaults to Medium
+        // Requested priority defaults to empty placeholder
         const prioritySelect = screen.getByLabelText(/requested priority/i);
-        expect(prioritySelect).toHaveValue("MEDIUM");
+        expect(prioritySelect).toHaveValue("");
     });
     it("UI-03: validates required fields on client submission without calling API", async () => {
         const fetchSpy = vi.spyOn(globalThis, "fetch");
@@ -83,6 +83,7 @@ describe("Create Ticket Screen (UI-02, UI-03, UI-04, UI-09)", () => {
             expect(screen.getByText(/summary is required/i)).toBeInTheDocument();
             expect(screen.getByText(/description is required/i)).toBeInTheDocument();
             expect(screen.getByText(/please select a category/i)).toBeInTheDocument();
+            expect(screen.getByText(/please select a requested priority/i)).toBeInTheDocument();
         });
     });
     it("UI-04: shows busy spinner during submission and displays success banner with Ticket Number", async () => {
@@ -113,6 +114,7 @@ describe("Create Ticket Screen (UI-02, UI-03, UI-04, UI-09)", () => {
         // Fill form
         fireEvent.change(screen.getByLabelText(/category/i), { target: { value: "4" } });
         fireEvent.change(screen.getByLabelText(/related system/i), { target: { value: "4" } });
+        fireEvent.change(screen.getByLabelText(/requested priority/i), { target: { value: "HIGH" } });
         fireEvent.change(screen.getByLabelText(/summary/i), {
             target: { value: "VPN connection dropping repeatedly" },
         });
@@ -153,6 +155,7 @@ describe("Create Ticket Screen (UI-02, UI-03, UI-04, UI-09)", () => {
         const descText = "Detailed steps to reproduce the issue on the corporate laptop.";
         fireEvent.change(screen.getByLabelText(/category/i), { target: { value: "2" } });
         fireEvent.change(screen.getByLabelText(/related system/i), { target: { value: "2" } });
+        fireEvent.change(screen.getByLabelText(/requested priority/i), { target: { value: "MEDIUM" } });
         fireEvent.change(screen.getByLabelText(/summary/i), { target: { value: summaryText } });
         fireEvent.change(screen.getByLabelText(/description/i), { target: { value: descText } });
         fireEvent.click(screen.getByRole("button", { name: /submit ticket/i }));
@@ -165,5 +168,6 @@ describe("Create Ticket Screen (UI-02, UI-03, UI-04, UI-09)", () => {
         expect(screen.getByLabelText(/description/i)).toHaveValue(descText);
         expect(screen.getByLabelText(/category/i)).toHaveValue("2");
         expect(screen.getByLabelText(/related system/i)).toHaveValue("2");
+        expect(screen.getByLabelText(/requested priority/i)).toHaveValue("MEDIUM");
     });
 });

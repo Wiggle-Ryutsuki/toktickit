@@ -1,8 +1,23 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
+import { getPrisma } from "../../src/prisma.js";
 
 describe("API-03 & API-04: POST /api/tickets (Create Ticket API)", () => {
+  const createdTicketIds: number[] = [];
+
+  afterAll(async () => {
+    if (createdTicketIds.length > 0) {
+      const prisma = getPrisma();
+      await prisma.attachment.deleteMany({
+        where: { ticketId: { in: createdTicketIds } },
+      });
+      await prisma.ticket.deleteMany({
+        where: { id: { in: createdTicketIds } },
+      });
+    }
+  });
+
   const validTicketData = {
     requesterId: 1,
     categoryId: 2,
@@ -17,6 +32,8 @@ describe("API-03 & API-04: POST /api/tickets (Create Ticket API)", () => {
       const res = await request(app)
         .post("/api/tickets")
         .send(validTicketData);
+
+      if (res.body?.id) createdTicketIds.push(res.body.id);
 
       expect(res.status).toBe(201);
       expect(res.body).toHaveProperty("id");
@@ -47,6 +64,8 @@ describe("API-03 & API-04: POST /api/tickets (Create Ticket API)", () => {
           filename: "diagnostics.pdf",
           contentType: "application/pdf",
         });
+
+      if (res.body?.id) createdTicketIds.push(res.body.id);
 
       expect(res.status).toBe(201);
       expect(res.body.ticketNo).toMatch(/^TKT-\d{4}-\d{5}$/);
