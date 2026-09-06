@@ -29,6 +29,7 @@ interface FormErrors {
   description?: string;
   categoryId?: string;
   relatedSystemId?: string;
+  requestedPriority?: string;
   attachments?: string;
 }
 
@@ -43,7 +44,7 @@ export default function CreateTicket({ onCancel, onTicketCreated, onViewDetail }
   // Form Fields
   const [categoryId, setCategoryId] = useState<string>("");
   const [relatedSystemId, setRelatedSystemId] = useState<string>("");
-  const [requestedPriority, setRequestedPriority] = useState<string>("MEDIUM");
+  const [requestedPriority, setRequestedPriority] = useState<string>("");
   const [summary, setSummary] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -191,6 +192,10 @@ export default function CreateTicket({ onCancel, onTicketCreated, onViewDetail }
       newErrors.relatedSystemId = "Please select a related system.";
     }
 
+    if (!requestedPriority) {
+      newErrors.requestedPriority = "Please select a requested priority.";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -257,6 +262,7 @@ export default function CreateTicket({ onCancel, onTicketCreated, onViewDetail }
             if (fe.field === "description") apiFieldErrors.description = fe.message;
             if (fe.field === "categoryId") apiFieldErrors.categoryId = fe.message;
             if (fe.field === "relatedSystemId") apiFieldErrors.relatedSystemId = fe.message;
+            if (fe.field === "requestedPriority") apiFieldErrors.requestedPriority = fe.message;
           }
           setErrors(apiFieldErrors);
         }
@@ -475,15 +481,24 @@ export default function CreateTicket({ onCancel, onTicketCreated, onViewDetail }
               </label>
               <select
                 id="requestedPriority"
-                className="form-select"
+                className={`form-select ${errors.requestedPriority ? "is-invalid" : ""}`}
                 value={requestedPriority}
-                onChange={(e) => setRequestedPriority(e.target.value)}
+                onChange={(e) => {
+                  setRequestedPriority(e.target.value);
+                  if (errors.requestedPriority) setErrors((prev) => ({ ...prev, requestedPriority: undefined }));
+                }}
               >
+                <option value="">Select Priority...</option>
                 <option value="LOW">Low</option>
                 <option value="MEDIUM">Medium</option>
                 <option value="HIGH">High</option>
                 <option value="URGENT">Urgent</option>
               </select>
+              {errors.requestedPriority && (
+                <div className="zen-field-error" role="alert">
+                  {errors.requestedPriority}
+                </div>
+              )}
             </div>
           </div>
 

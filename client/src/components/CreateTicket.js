@@ -15,7 +15,7 @@ export default function CreateTicket({ onCancel, onTicketCreated, onViewDetail }
     // Form Fields
     const [categoryId, setCategoryId] = useState("");
     const [relatedSystemId, setRelatedSystemId] = useState("");
-    const [requestedPriority, setRequestedPriority] = useState("MEDIUM");
+    const [requestedPriority, setRequestedPriority] = useState("");
     const [summary, setSummary] = useState("");
     const [description, setDescription] = useState("");
     const [attachments, setAttachments] = useState([]);
@@ -147,6 +147,9 @@ export default function CreateTicket({ onCancel, onTicketCreated, onViewDetail }
         if (!relatedSystemId) {
             newErrors.relatedSystemId = "Please select a related system.";
         }
+        if (!requestedPriority) {
+            newErrors.requestedPriority = "Please select a requested priority.";
+        }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -209,6 +212,8 @@ export default function CreateTicket({ onCancel, onTicketCreated, onViewDetail }
                             apiFieldErrors.categoryId = fe.message;
                         if (fe.field === "relatedSystemId")
                             apiFieldErrors.relatedSystemId = fe.message;
+                        if (fe.field === "requestedPriority")
+                            apiFieldErrors.requestedPriority = fe.message;
                     }
                     setErrors(apiFieldErrors);
                 }
@@ -247,7 +252,11 @@ export default function CreateTicket({ onCancel, onTicketCreated, onViewDetail }
                                                     setRelatedSystemId(e.target.value);
                                                     if (errors.relatedSystemId)
                                                         setErrors((prev) => ({ ...prev, relatedSystemId: undefined }));
-                                                }, disabled: loadingRefData, children: [_jsx("option", { value: "", children: loadingRefData ? "Loading systems..." : "Select Related System..." }), systems.map((s) => (_jsx("option", { value: s.id, children: s.name }, s.id)))] }), errors.relatedSystemId && (_jsx("div", { className: "zen-field-error", role: "alert", children: errors.relatedSystemId }))] }), _jsxs("div", { className: "col-md-4", children: [_jsxs("label", { htmlFor: "requestedPriority", className: "form-label fw-semibold", children: ["Requested Priority ", _jsx("span", { className: "text-danger", children: "*" })] }), _jsxs("select", { id: "requestedPriority", className: "form-select", value: requestedPriority, onChange: (e) => setRequestedPriority(e.target.value), children: [_jsx("option", { value: "LOW", children: "Low" }), _jsx("option", { value: "MEDIUM", children: "Medium" }), _jsx("option", { value: "HIGH", children: "High" }), _jsx("option", { value: "URGENT", children: "Urgent" })] })] })] }), _jsxs("div", { className: "mb-4", children: [_jsxs("div", { className: "d-flex justify-content-between align-items-center mb-1", children: [_jsxs("label", { htmlFor: "summary", className: "form-label fw-semibold mb-0", children: ["Summary ", _jsx("span", { className: "text-danger", children: "*" })] }), _jsxs("span", { className: "small text-muted", children: [summary.length, " / 120"] })] }), _jsx("input", { id: "summary", type: "text", className: `form-control ${errors.summary ? "is-invalid" : ""}`, placeholder: "Brief summary of the issue", value: summary, maxLength: 120, onChange: (e) => {
+                                                }, disabled: loadingRefData, children: [_jsx("option", { value: "", children: loadingRefData ? "Loading systems..." : "Select Related System..." }), systems.map((s) => (_jsx("option", { value: s.id, children: s.name }, s.id)))] }), errors.relatedSystemId && (_jsx("div", { className: "zen-field-error", role: "alert", children: errors.relatedSystemId }))] }), _jsxs("div", { className: "col-md-4", children: [_jsxs("label", { htmlFor: "requestedPriority", className: "form-label fw-semibold", children: ["Requested Priority ", _jsx("span", { className: "text-danger", children: "*" })] }), _jsxs("select", { id: "requestedPriority", className: `form-select ${errors.requestedPriority ? "is-invalid" : ""}`, value: requestedPriority, onChange: (e) => {
+                                                    setRequestedPriority(e.target.value);
+                                                    if (errors.requestedPriority)
+                                                        setErrors((prev) => ({ ...prev, requestedPriority: undefined }));
+                                                }, children: [_jsx("option", { value: "", children: "Select Priority..." }), _jsx("option", { value: "LOW", children: "Low" }), _jsx("option", { value: "MEDIUM", children: "Medium" }), _jsx("option", { value: "HIGH", children: "High" }), _jsx("option", { value: "URGENT", children: "Urgent" })] }), errors.requestedPriority && (_jsx("div", { className: "zen-field-error", role: "alert", children: errors.requestedPriority }))] })] }), _jsxs("div", { className: "mb-4", children: [_jsxs("div", { className: "d-flex justify-content-between align-items-center mb-1", children: [_jsxs("label", { htmlFor: "summary", className: "form-label fw-semibold mb-0", children: ["Summary ", _jsx("span", { className: "text-danger", children: "*" })] }), _jsxs("span", { className: "small text-muted", children: [summary.length, " / 120"] })] }), _jsx("input", { id: "summary", type: "text", className: `form-control ${errors.summary ? "is-invalid" : ""}`, placeholder: "Brief summary of the issue", value: summary, maxLength: 120, onChange: (e) => {
                                             setSummary(e.target.value);
                                             if (errors.summary)
                                                 setErrors((prev) => ({ ...prev, summary: undefined }));
