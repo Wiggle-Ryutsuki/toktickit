@@ -12,3 +12,8 @@ server/prisma/*.db
 # logs & OS
 *.log
 .DS_Store
+# lab files
+*Lab_02_labsheet.pdf
+*TokTickIT-System-Level-SDS-v1.0.pdf
+*ai-prompts.md
+docs/features/

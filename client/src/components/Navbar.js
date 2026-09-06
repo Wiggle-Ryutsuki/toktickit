@@ -1,0 +1,15 @@
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+import { useRequester } from "../context/RequesterContext.js";
+export default function Navbar({ activeView = "tickets", onNavigate }) {
+    const { selectedRequester, openSelector } = useRequester();
+    return (_jsx("header", { className: "zen-header navbar navbar-expand-lg", children: _jsxs("div", { className: "container-fluid d-flex justify-content-between align-items-center", children: [_jsxs("div", { className: "d-flex align-items-center gap-4", children: [_jsxs("a", { className: "navbar-brand d-flex align-items-center gap-2 m-0 text-decoration-none", href: "#/", onClick: (e) => {
+                                e.preventDefault();
+                                onNavigate?.("tickets");
+                            }, children: [_jsx("span", { style: { fontSize: "1.25rem" }, children: "\uD83C\uDFAB" }), _jsx("span", { children: "TokTickIT" })] }), _jsxs("nav", { className: "d-flex gap-3", children: [_jsx("a", { className: `nav-link text-decoration-none ${activeView === "tickets" ? "active" : ""}`, href: "#/my-tickets", onClick: (e) => {
+                                        e.preventDefault();
+                                        onNavigate?.("tickets");
+                                    }, children: "My Tickets" }), _jsx("a", { className: `nav-link text-decoration-none ${activeView === "create-ticket" ? "active" : ""}`, href: "#/create-ticket", onClick: (e) => {
+                                        e.preventDefault();
+                                        onNavigate?.("create-ticket");
+                                    }, children: "+ Create Ticket" })] })] }), _jsx("div", { className: "d-flex align-items-center gap-2", children: selectedRequester ? (_jsxs(_Fragment, { children: [_jsxs("span", { className: "zen-user-badge", "data-testid": "active-requester-display", children: [_jsx("span", { children: "\uD83D\uDC64" }), _jsx("span", { className: "fw-semibold", children: selectedRequester.displayName }), _jsx("span", { className: "badge bg-light text-success ms-1", children: "Requester" })] }), _jsx("button", { type: "button", className: "btn-zen-outline-light", onClick: openSelector, "data-testid": "change-requester-btn", children: "Change Requester" })] })) : (_jsx("button", { type: "button", className: "btn-zen-outline-light", onClick: openSelector, "data-testid": "select-requester-btn", children: "Select Requester" })) })] }) }));
+}
