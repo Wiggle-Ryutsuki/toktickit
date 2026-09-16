@@ -139,7 +139,7 @@ export default function ChangePassword({ onSuccess, onCancel }: ChangePasswordPr
                 type={showCurrent ? "text" : "password"}
                 name="currentPassword"
                 className="form-control"
-                placeholder="••••••••"
+                placeholder="Enter current password"
                 autoComplete="current-password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -174,7 +174,7 @@ export default function ChangePassword({ onSuccess, onCancel }: ChangePasswordPr
                 type={showNew ? "text" : "password"}
                 name="newPassword"
                 className="form-control"
-                placeholder="••••••••"
+                placeholder="Enter new password"
                 autoComplete="new-password"
                 maxLength={128}
                 value={newPassword}
@@ -210,7 +210,7 @@ export default function ChangePassword({ onSuccess, onCancel }: ChangePasswordPr
                 type={showConfirm ? "text" : "password"}
                 name="confirmPassword"
                 className="form-control"
-                placeholder="••••••••"
+                placeholder="Confirm new password"
                 autoComplete="new-password"
                 maxLength={128}
                 value={confirmPassword}

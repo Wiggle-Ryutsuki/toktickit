@@ -150,7 +150,7 @@ export default function Login() {
                 type={showPassword ? "text" : "password"}
                 name="password"
                 className={`form-control ${fieldErrors.password ? "is-invalid" : ""}`}
-                placeholder="••••••••"
+                placeholder="Enter password"
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => {
