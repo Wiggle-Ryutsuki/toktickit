@@ -426,11 +426,11 @@ A feature increment or sprint deliverable is marked **Done** only when all condi
 All work branches branch from and merge back into `lab3-staging`:
 ```
 lab3-staging
-  ├── feature/9-authentication       --> PR #1 into lab3-staging
-  ├── feature/10-staff-queue         --> PR #2 into lab3-staging
-  ├── feature/11-staff-ticket-detail --> PR #3 into lab3-staging
-  └── feature/12-user-management     --> PR #4 into lab3-staging
-                                          └── PR to main
+  ├── feature/9-authentication-password-change    --> PR #1 into lab3-staging
+  ├── feature/10-staff-queue                      --> PR #2 into lab3-staging
+  ├── feature/11-staff-ticket-detail              --> PR #3 into lab3-staging
+  └── feature/12-user-management                  --> PR #4 into lab3-staging
+                                                    └── PR to main
 ```
 
 ### 12.2. Decomposed Issues & Scope

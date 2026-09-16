@@ -1,25 +1,29 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { checkSystem, Category } from "./api.js";
 import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
+import { AuthContext } from "./context/AuthContext.js";
 import Navbar from "./components/Navbar.js";
 import RequesterSelector from "./components/RequesterSelector.js";
 import CreateTicket from "./components/CreateTicket.js";
 import MyTickets from "./components/MyTickets.js";
 import RequesterTicketDetail from "./components/RequesterTicketDetail.js";
+import Login from "./components/Login.js";
+import ChangePassword from "./components/ChangePassword.js";
 import "./theme.css";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "idle" | "loading" | "success" | "error";
 
 function AppContent() {
+  const auth = useContext(AuthContext);
   const { selectedRequester, isSelectorOpen } = useRequester();
-  const [activeView, setActiveView] = useState<"tickets" | "create-ticket" | "ticket-detail">("tickets");
+  const [activeView, setActiveView] = useState<"tickets" | "create-ticket" | "ticket-detail" | "change-password">("tickets");
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const handleNavigate = (view: "tickets" | "create-ticket" | "ticket-detail") => {
+  const handleNavigate = (view: "tickets" | "create-ticket" | "ticket-detail" | "change-password") => {
     if (view !== "ticket-detail") {
       setSelectedTicketId(null);
     }
@@ -44,13 +48,44 @@ function AppContent() {
     }
   }
 
+  // If AuthContext is active in tree (browser execution or auth test)
+  if (auth) {
+    if (auth.isLoading) {
+      return (
+        <div
+          className="min-vh-100 d-flex flex-column align-items-center justify-content-center"
+          style={{ backgroundColor: "var(--color-page-bg, #f5f7f6)" }}
+        >
+          <div className="spinner-border text-success" role="status" style={{ width: "3rem", height: "3rem" }}>
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (!auth.isAuthenticated) {
+      return <Login />;
+    }
+
+    if (auth.user?.mustChangePassword) {
+      return <ChangePassword />;
+    }
+  }
+
   return (
     <div className="min-vh-100 d-flex flex-column pb-5 pb-md-0" style={{ backgroundColor: "var(--color-page-bg)" }}>
       <Navbar activeView={activeView} onNavigate={handleNavigate} />
 
       {(!selectedRequester || isSelectorOpen) && <RequesterSelector />}
 
-      {activeView === "ticket-detail" && selectedTicketId !== null ? (
+      {activeView === "change-password" ? (
+        <div className="container py-4 d-flex justify-content-center">
+          <ChangePassword
+            onSuccess={() => setActiveView("tickets")}
+            onCancel={() => setActiveView("tickets")}
+          />
+        </div>
+      ) : activeView === "ticket-detail" && selectedTicketId !== null ? (
         <RequesterTicketDetail
           ticketId={selectedTicketId}
           onBack={() => {
