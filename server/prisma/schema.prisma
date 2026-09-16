@@ -55,18 +55,36 @@ enum Role {
 }
 
 model User {
-  id          Int          @id @default(autoincrement())
-  email       String       @unique
-  displayName String
-  role        Role         @default(REQUESTER)
-  isActive    Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                 Int          @id @default(autoincrement())
+  email              String       @unique
+  displayName        String
+  role               Role         @default(REQUESTER)
+  isActive           Boolean      @default(true)
+  passwordHash       String       @default("")
+  mustChangePassword Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   requestedTickets Ticket[]     @relation("RequesterTickets")
   attachments      Attachment[] @relation("UploadedAttachments")
+  sessions         Session[]
 
   @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("sessions")
 }
 
 // ---------------------------------------------------------------------------

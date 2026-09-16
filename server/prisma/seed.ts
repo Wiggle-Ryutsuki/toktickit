@@ -1,7 +1,6 @@
 import { getPrisma } from "../src/prisma.js";
 import { Role } from "@prisma/client";
-
-// Feature 5 Seed Data per Lab 2 Specification (docs/lab-02/specification.md & docs/features/feature-05/contract.md)
+import { hashPassword } from "../src/utils/password.js";
 
 const categories = [
   { name: "Account and Access", code: "ACC", description: "Account and access requests", isActive: true },
@@ -18,39 +17,6 @@ const relatedSystems = [
   { name: "LEB2 App", description: "Learning Environment at Bangmod 2nd Gen", isActive: true },
   { name: "Printer", description: "Campus networked printers and copiers", isActive: true },
   { name: "VPN", description: "Virtual Private Network for off-campus access", isActive: true },
-];
-
-const developmentRequesters = [
-  {
-    email: "jennifer.anderson@kmutt.ac.th",
-    displayName: "Jennifer Anderson",
-    role: Role.REQUESTER,
-    isActive: true,
-  },
-  {
-    email: "sarah.johnson@kmutt.ac.th",
-    displayName: "Sarah Johnson",
-    role: Role.REQUESTER,
-    isActive: true,
-  },
-  {
-    email: "david.lee@kmutt.ac.th",
-    displayName: "David Lee",
-    role: Role.REQUESTER,
-    isActive: true,
-  },
-  {
-    email: "michael.brown@kmutt.ac.th",
-    displayName: "Michael Brown",
-    role: Role.REQUESTER,
-    isActive: true,
-  },
-  {
-    email: "alex.taylor.inactive@kmutt.ac.th",
-    displayName: "Alex Taylor",
-    role: Role.REQUESTER,
-    isActive: false,
-  },
 ];
 
 async function main() {
@@ -81,27 +47,124 @@ async function main() {
     });
   }
 
-  console.log("Seeding development requesters...");
-  for (const reqUser of developmentRequesters) {
+  console.log("Seeding users with Argon2id password hashes...");
+  const defaultPasswordHash = await hashPassword("Password123!");
+  const initialPasswordHash = await hashPassword("InitialPass123!");
+
+  const users = [
+    {
+      email: "jennifer.anderson@kmutt.ac.th",
+      displayName: "Jennifer Anderson",
+      role: Role.REQUESTER,
+      isActive: true,
+      passwordHash: defaultPasswordHash,
+      mustChangePassword: false,
+    },
+    {
+      email: "sarah.johnson@kmutt.ac.th",
+      displayName: "Sarah Johnson",
+      role: Role.REQUESTER,
+      isActive: true,
+      passwordHash: defaultPasswordHash,
+      mustChangePassword: false,
+    },
+    {
+      email: "david.lee@kmutt.ac.th",
+      displayName: "David Lee",
+      role: Role.REQUESTER,
+      isActive: true,
+      passwordHash: defaultPasswordHash,
+      mustChangePassword: false,
+    },
+    {
+      email: "michael.brown@kmutt.ac.th",
+      displayName: "Michael Brown",
+      role: Role.REQUESTER,
+      isActive: true,
+      passwordHash: defaultPasswordHash,
+      mustChangePassword: false,
+    },
+    {
+      email: "firstlogin.requester@kmutt.ac.th",
+      displayName: "FirstLogin Requester",
+      role: Role.REQUESTER,
+      isActive: true,
+      passwordHash: initialPasswordHash,
+      mustChangePassword: true,
+    },
+    {
+      email: "alex.taylor.inactive@kmutt.ac.th",
+      displayName: "Alex Taylor",
+      role: Role.REQUESTER,
+      isActive: false,
+      passwordHash: defaultPasswordHash,
+      mustChangePassword: false,
+    },
+    {
+      email: "staff.somchai@kmutt.ac.th",
+      displayName: "Somchai Prasert",
+      role: Role.IT_STAFF,
+      isActive: true,
+      passwordHash: defaultPasswordHash,
+      mustChangePassword: false,
+    },
+    {
+      email: "staff.malee@kmutt.ac.th",
+      displayName: "Malee Jaidee",
+      role: Role.IT_STAFF,
+      isActive: true,
+      passwordHash: defaultPasswordHash,
+      mustChangePassword: false,
+    },
+    {
+      email: "staff.anong@kmutt.ac.th",
+      displayName: "Anong Srichai",
+      role: Role.IT_STAFF,
+      isActive: true,
+      passwordHash: defaultPasswordHash,
+      mustChangePassword: false,
+    },
+    {
+      email: "staff.inactive@kmutt.ac.th",
+      displayName: "Inactive Staff",
+      role: Role.IT_STAFF,
+      isActive: false,
+      passwordHash: defaultPasswordHash,
+      mustChangePassword: false,
+    },
+    {
+      email: "admin.toktickit@kmutt.ac.th",
+      displayName: "Admin TokTickIT",
+      role: Role.ADMINISTRATOR,
+      isActive: true,
+      passwordHash: defaultPasswordHash,
+      mustChangePassword: false,
+    },
+  ];
+
+  for (const user of users) {
     await prisma.user.upsert({
-      where: { email: reqUser.email },
+      where: { email: user.email },
       update: {
-        displayName: reqUser.displayName,
-        role: reqUser.role,
-        isActive: reqUser.isActive,
+        displayName: user.displayName,
+        role: user.role,
+        isActive: user.isActive,
+        passwordHash: user.passwordHash,
+        mustChangePassword: user.mustChangePassword,
       },
-      create: reqUser,
+      create: user,
     });
   }
 
-  console.log("Feature 5 seed complete.");
+  console.log(`Seeded ${users.length} users successfully.`);
 }
 
 main()
   .catch((e) => {
-    console.error("Seed failed:", e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {
-    await getPrisma().$disconnect();
+    const prisma = getPrisma();
+    await prisma.$disconnect();
   });

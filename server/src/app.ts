@@ -5,12 +5,39 @@ import { getPrisma } from "./prisma.js";
 // need the DB (Issue 4). It is intentionally unused until then.
 void getPrisma;
 
+import cookieParser from "cookie-parser";
+import { authenticateSession, requirePasswordChangeClear } from "./middleware/auth.js";
+import { login, logout, getCurrentUser, changePassword } from "./controllers/auth.controller.js";
+
 // The Express app is exported separately from app.listen() (see index.ts) so
 // Supertest can import `app` without opening a port. Do not merge these files.
 export const app = express();
 
-app.use(cors());          // already wired: lets the Vite dev server call this API
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
+    credentials: true,
+  })
+);
+app.use(cookieParser());
 app.use(express.json());
+app.use(authenticateSession);
+app.use(requirePasswordChangeClear);
+
+// ---------------------------------------------------------------------------
+// Feature 9 — Authentication & Password Change Endpoints
+// ---------------------------------------------------------------------------
+app.post("/api/v1/auth/login", login);
+app.post("/api/auth/login", login);
+
+app.post("/api/v1/auth/logout", logout);
+app.post("/api/auth/logout", logout);
+
+app.get("/api/v1/auth/me", getCurrentUser);
+app.get("/api/auth/me", getCurrentUser);
+
+app.post("/api/v1/auth/change-password", changePassword);
+app.post("/api/auth/change-password", changePassword);
 
 // Standard Error Helper
 function sendError(res: Response, status: number, code: string, message: string, fieldErrors: { field: string; message: string }[] = []) {

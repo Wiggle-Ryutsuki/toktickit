@@ -10,7 +10,8 @@ export async function createTicket(req: Request, res: Response): Promise<void> {
   const prisma = getPrisma();
 
   try {
-    const rawRequesterId = req.body.requesterId ?? req.headers["x-requester-id"];
+    // BR-03 / AC-03 / API-07: Server-derived requester identity from active session
+    const rawRequesterId = req.user ? req.user.id : (req.body.requesterId ?? req.headers["x-requester-id"]);
     const requesterId = Number(rawRequesterId);
     const categoryId = Number(req.body.categoryId);
     const relatedSystemId = Number(req.body.relatedSystemId);

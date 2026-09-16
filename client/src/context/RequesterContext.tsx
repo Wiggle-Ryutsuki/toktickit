@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { AuthContext } from "./AuthContext.js";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 const STORAGE_KEY = "toktickit_selected_requester_id";
@@ -26,11 +27,22 @@ export interface RequesterContextType {
 const RequesterContext = createContext<RequesterContextType | undefined>(undefined);
 
 export function RequesterProvider({ children }: { children: React.ReactNode }) {
+  const auth = useContext(AuthContext);
   const [requesters, setRequesters] = useState<Requester[]>([]);
-  const [selectedRequester, setSelectedRequesterState] = useState<Requester | null>(null);
+  const [selectedRequesterState, setSelectedRequesterState] = useState<Requester | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isSelectorOpen, setIsSelectorOpen] = useState<boolean>(false);
+
+  const selectedRequester: Requester | null = auth?.user
+    ? {
+        id: auth.user.id,
+        email: auth.user.email,
+        displayName: auth.user.displayName,
+        role: auth.user.role,
+        isActive: true,
+      }
+    : selectedRequesterState;
 
   const setSelectedRequester = useCallback((requester: Requester | null) => {
     setSelectedRequesterState(requester);
