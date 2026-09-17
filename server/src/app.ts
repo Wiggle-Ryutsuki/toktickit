@@ -182,7 +182,21 @@ app.post("/api/v1/tickets", handleTicketUpload, createTicket);
 // Feature 7 — My Tickets List, Search, Filters, Sorting & Pagination
 // ---------------------------------------------------------------------------
 app.get("/api/tickets", listTickets);
-app.get("/api/v1/tickets", listTickets);
+
+// ---------------------------------------------------------------------------
+// Feature 10 — IT Staff Ticket Queue (GET /api/v1/tickets & /api/v1/staff/tickets)
+// ---------------------------------------------------------------------------
+import { requireRole } from "./middleware/auth.js";
+import { getStaffQueue } from "./controllers/staff-queue.controller.js";
+
+app.get("/api/v1/tickets", (req, res, next) => {
+  if (req.query.requesterId) {
+    return listTickets(req, res);
+  }
+  return requireRole("IT_STAFF", "ADMINISTRATOR")(req, res, () => getStaffQueue(req, res));
+});
+app.get("/api/v1/staff/tickets", requireRole("IT_STAFF", "ADMINISTRATOR"), getStaffQueue);
+app.get("/api/staff/tickets", requireRole("IT_STAFF", "ADMINISTRATOR"), getStaffQueue);
 
 // ---------------------------------------------------------------------------
 // Feature 8 — Ticket Detail (View Mode) & Attachment Lifecycle

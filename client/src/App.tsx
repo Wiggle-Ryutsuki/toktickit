@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { checkSystem, Category } from "./api.js";
 import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
 import { AuthContext } from "./context/AuthContext.js";
@@ -9,21 +9,35 @@ import MyTickets from "./components/MyTickets.js";
 import RequesterTicketDetail from "./components/RequesterTicketDetail.js";
 import Login from "./components/Login.js";
 import ChangePassword from "./components/ChangePassword.js";
+import StaffTicketQueue from "./components/StaffTicketQueue.js";
 import "./theme.css";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "idle" | "loading" | "success" | "error";
 
+export type ViewType = "tickets" | "create-ticket" | "ticket-detail" | "change-password" | "queue" | "admin";
+
 function AppContent() {
   const auth = useContext(AuthContext);
   const { selectedRequester, isSelectorOpen } = useRequester();
-  const [activeView, setActiveView] = useState<"tickets" | "create-ticket" | "ticket-detail" | "change-password">("tickets");
+  const [activeView, setActiveView] = useState<ViewType>(() => {
+    if (typeof window !== "undefined" && window.location.hash.includes("queue")) {
+      return "queue";
+    }
+    return "tickets";
+  });
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const handleNavigate = (view: "tickets" | "create-ticket" | "ticket-detail" | "change-password") => {
+  useEffect(() => {
+    if (auth?.user && (auth.user.role === "IT_STAFF" || auth.user.role === "ADMINISTRATOR")) {
+      setActiveView((curr) => (curr === "tickets" ? "queue" : curr));
+    }
+  }, [auth?.user?.role]);
+
+  const handleNavigate = (view: ViewType) => {
     if (view !== "ticket-detail") {
       setSelectedTicketId(null);
     }
@@ -81,8 +95,8 @@ function AppContent() {
       {activeView === "change-password" ? (
         <div className="container py-4 d-flex justify-content-center">
           <ChangePassword
-            onSuccess={() => setActiveView("tickets")}
-            onCancel={() => setActiveView("tickets")}
+            onSuccess={() => setActiveView(auth?.user?.role === "REQUESTER" ? "tickets" : "queue")}
+            onCancel={() => setActiveView(auth?.user?.role === "REQUESTER" ? "tickets" : "queue")}
           />
         </div>
       ) : activeView === "ticket-detail" && selectedTicketId !== null ? (
@@ -90,13 +104,18 @@ function AppContent() {
           ticketId={selectedTicketId}
           onBack={() => {
             setSelectedTicketId(null);
-            setActiveView("tickets");
+            setActiveView(auth?.user?.role === "REQUESTER" ? "tickets" : "queue");
           }}
         />
       ) : activeView === "create-ticket" ? (
         <CreateTicket
-          onCancel={() => setActiveView("tickets")}
+          onCancel={() => setActiveView(auth?.user?.role === "REQUESTER" ? "tickets" : "queue")}
           onViewDetail={handleViewDetail}
+        />
+      ) : activeView === "queue" ? (
+        <StaffTicketQueue
+          onViewDetail={handleViewDetail}
+          onNavigate={handleNavigate}
         />
       ) : (
         <>

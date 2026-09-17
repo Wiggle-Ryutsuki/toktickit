@@ -8,30 +8,38 @@ function getCorrelationId(): string {
 export async function getTicketDetail(req: Request, res: Response): Promise<Response> {
   const correlationId = getCorrelationId();
 
-  // 1. Validate X-Requester-Id header
-  const requesterIdHeader = req.headers["x-requester-id"] as string | undefined;
-  const requesterIdQuery = req.query.requesterId as string | undefined;
-  const rawRequesterId = requesterIdHeader ?? requesterIdQuery;
+  // 1. Determine caller authorization and identity
+  const isStaffOrAdmin = req.user?.role === "IT_STAFF" || req.user?.role === "ADMINISTRATOR";
+  let requesterId: number | null = null;
 
-  if (!rawRequesterId || !/^\d+$/.test(rawRequesterId.trim())) {
-    return res.status(400).json({
-      error: {
-        code: "BAD_REQUEST",
-        message: "Missing or invalid X-Requester-Id header.",
-        correlationId,
-      },
-    });
-  }
+  if (req.user?.role === "REQUESTER") {
+    requesterId = req.user.id;
+  } else if (!isStaffOrAdmin) {
+    // Validate X-Requester-Id header for simulated/unauthenticated requester (Lab 2 compatibility)
+    const requesterIdHeader = req.headers["x-requester-id"] as string | undefined;
+    const requesterIdQuery = req.query.requesterId as string | undefined;
+    const rawRequesterId = requesterIdHeader ?? requesterIdQuery;
 
-  const requesterId = parseInt(rawRequesterId.trim(), 10);
-  if (requesterId <= 0) {
-    return res.status(400).json({
-      error: {
-        code: "BAD_REQUEST",
-        message: "X-Requester-Id must be a positive integer.",
-        correlationId,
-      },
-    });
+    if (!rawRequesterId || !/^\d+$/.test(rawRequesterId.trim())) {
+      return res.status(400).json({
+        error: {
+          code: "BAD_REQUEST",
+          message: "Missing or invalid X-Requester-Id header.",
+          correlationId,
+        },
+      });
+    }
+
+    requesterId = parseInt(rawRequesterId.trim(), 10);
+    if (requesterId <= 0) {
+      return res.status(400).json({
+        error: {
+          code: "BAD_REQUEST",
+          message: "X-Requester-Id must be a positive integer.",
+          correlationId,
+        },
+      });
+    }
   }
 
   // 2. Validate Ticket ID parameter
@@ -82,6 +90,13 @@ export async function getTicketDetail(req: Request, res: Response): Promise<Resp
             name: true,
           },
         },
+        owner: {
+          select: {
+            id: true,
+            displayName: true,
+            email: true,
+          },
+        },
         attachments: {
           include: {
             uploadedBy: {
@@ -109,7 +124,9 @@ export async function getTicketDetail(req: Request, res: Response): Promise<Resp
     }
 
     // 3. Strict BOLA Ownership Enforcement
-    if (ticket.requesterId !== requesterId) {
+    // IT Staff and Administrators have access to view all tickets in the system (Lab 3 SDS, line 532).
+    // Requesters can only view tickets they created.
+    if (!isStaffOrAdmin && ticket.requesterId !== requesterId) {
       return res.status(403).json({
         error: {
           code: "FORBIDDEN",
@@ -144,7 +161,7 @@ export async function getTicketDetail(req: Request, res: Response): Promise<Resp
       status: ticket.status,
       requestedPriority: ticket.requestedPriority,
       itPriority: ticket.itPriority,
-      ticketOwner: null,
+      ticketOwner: ticket.owner ? ticket.owner.displayName : null,
       resolutionSummary: null,
       requester: ticket.requester,
       category: ticket.category,

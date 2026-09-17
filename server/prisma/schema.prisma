@@ -66,6 +66,7 @@ model User {
   updatedAt          DateTime     @updatedAt
 
   requestedTickets Ticket[]     @relation("RequesterTickets")
+  ownedTickets     Ticket[]     @relation("OwnedTickets")
   attachments      Attachment[] @relation("UploadedAttachments")
   sessions         Session[]
 
@@ -123,11 +124,14 @@ model Ticket {
   updatedAt         DateTime     @updatedAt
 
   requester         User          @relation("RequesterTickets", fields: [requesterId], references: [id])
+  ownerId           Int?
+  owner             User?         @relation("OwnedTickets", fields: [ownerId], references: [id])
   category          Category      @relation(fields: [categoryId], references: [id])
   relatedSystem     RelatedSystem @relation(fields: [relatedSystemId], references: [id])
   attachments       Attachment[]
 
   @@index([requesterId])
+  @@index([ownerId])
   @@index([status])
   @@index([categoryId])
   @@index([createdAt])

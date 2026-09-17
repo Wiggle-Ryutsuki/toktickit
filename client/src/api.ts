@@ -89,3 +89,75 @@ export async function changePasswordApi(
   }
   return data.user;
 }
+
+export interface StaffTicketDto {
+  id: number;
+  ticketNo: string;
+  summary: string;
+  description?: string;
+  category: { id: number; name: string; code?: string };
+  relatedSystem: { id: number; name: string };
+  requester: { id: number; displayName: string; email: string };
+  owner: { id: number; displayName: string } | null;
+  requestedPriority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  itPriority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  status: "NEW" | "ASSIGNED" | "IN_PROGRESS" | "PENDING_REQUESTER" | "RESOLVED" | "CLOSED" | "CANCELLED";
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StaffQueuePagination {
+  page: number;
+  limit: number;
+  totalCount: number;
+  totalPages: number;
+}
+
+export interface StaffQueueResponse {
+  tickets: StaffTicketDto[];
+  pagination: StaffQueuePagination;
+}
+
+export interface StaffQueueParams {
+  search?: string;
+  categoryId?: number | string;
+  status?: string;
+  requestedPriority?: string;
+  itPriority?: string;
+  assigned?: "all" | "unassigned" | "mine" | string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  limit?: number;
+}
+
+export async function getStaffTicketsApi(params: StaffQueueParams = {}): Promise<StaffQueueResponse> {
+  const q = new URLSearchParams();
+  if (params.search && params.search.trim()) q.set("search", params.search.trim());
+  if (params.categoryId && params.categoryId !== "ALL") q.set("categoryId", String(params.categoryId));
+  if (params.status && params.status !== "ALL") q.set("status", params.status);
+  if (params.requestedPriority && params.requestedPriority !== "ALL") q.set("requestedPriority", params.requestedPriority);
+  if (params.itPriority && params.itPriority !== "ALL") q.set("itPriority", params.itPriority);
+  if (params.assigned && params.assigned !== "ALL" && params.assigned !== "all") q.set("assigned", params.assigned);
+  if (params.sortBy) q.set("sortBy", params.sortBy);
+  if (params.sortOrder) q.set("sortOrder", params.sortOrder);
+  if (params.page) q.set("page", String(params.page));
+  if (params.limit) q.set("limit", String(params.limit));
+
+  const res = await fetch(`${API_URL}/api/v1/tickets?${q.toString()}`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    throw error;
+  }
+
+  return data;
+}
+
