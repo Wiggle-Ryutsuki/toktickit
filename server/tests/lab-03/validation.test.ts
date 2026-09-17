@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { validatePassword } from "../../src/utils/password.js";
+import { validateCommentContent, validateResolutionSummary } from "../../src/utils/validation.js";
 
 describe("Password Complexity Validator (UT-01)", () => {
   it("UT-01.1: Rejects passwords shorter than 8 characters", () => {
@@ -45,3 +46,54 @@ describe("Password Complexity Validator (UT-01)", () => {
     expect(res.errors).toHaveLength(0);
   });
 });
+
+describe("Comment and Note Content Validator (UT-03, BR-10)", () => {
+  it("UT-03.1: Rejects empty string content", () => {
+    const res = validateCommentContent("");
+    expect(res.isValid).toBe(false);
+    expect(res.code).toBe("INVALID_CONTENT");
+  });
+
+  it("UT-03.2: Rejects whitespace-only content (spaces, tabs, newlines)", () => {
+    const res = validateCommentContent("   \n\t   ");
+    expect(res.isValid).toBe(false);
+    expect(res.code).toBe("INVALID_CONTENT");
+  });
+
+  it("UT-03.3: Rejects content exceeding 2000 characters", () => {
+    const longContent = "A".repeat(2001);
+    const res = validateCommentContent(longContent);
+    expect(res.isValid).toBe(false);
+    expect(res.code).toBe("CONTENT_TOO_LONG");
+  });
+
+  it("UT-03.4: Accepts valid comment content at boundaries (1 char and 2000 chars)", () => {
+    const singleChar = validateCommentContent("x");
+    expect(singleChar.isValid).toBe(true);
+    expect(singleChar.trimmed).toBe("x");
+
+    const maxChars = validateCommentContent("B".repeat(2000));
+    expect(maxChars.isValid).toBe(true);
+    expect(maxChars.trimmed?.length).toBe(2000);
+  });
+
+  it("UT-03.5: Trims outer whitespace correctly", () => {
+    const res = validateCommentContent("   Hello World   ");
+    expect(res.isValid).toBe(true);
+    expect(res.trimmed).toBe("Hello World");
+  });
+
+  it("UT-03.6: Rejects non-string inputs", () => {
+    const res = validateCommentContent(null);
+    expect(res.isValid).toBe(false);
+    expect(res.code).toBe("INVALID_CONTENT");
+  });
+
+  it("UT-03.7: Validates Resolution Summary required for RESOLVED / CLOSED", () => {
+    expect(validateResolutionSummary("").isValid).toBe(false);
+    expect(validateResolutionSummary("   ").isValid).toBe(false);
+    expect(validateResolutionSummary("Fixed").isValid).toBe(true);
+    expect(validateResolutionSummary("C".repeat(2001)).isValid).toBe(false);
+  });
+});
+

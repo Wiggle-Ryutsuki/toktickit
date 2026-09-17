@@ -161,3 +161,198 @@ export async function getStaffTicketsApi(params: StaffQueueParams = {}): Promise
   return data;
 }
 
+export interface StaffAssigneeDto {
+  id: number;
+  displayName: string;
+  email: string;
+  role: "IT_STAFF" | "ADMINISTRATOR";
+}
+
+export interface TicketCommentDto {
+  id: number;
+  ticketId: number;
+  authorId: number;
+  commentType: "PUBLIC" | "INTERNAL_NOTE";
+  content: string;
+  createdAt: string;
+  author: {
+    id: number;
+    displayName: string;
+    email: string;
+    role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+  };
+}
+
+export interface TicketDetailFullDto {
+  id: number;
+  ticketNo: string;
+  summary: string;
+  description: string;
+  status: "NEW" | "ASSIGNED" | "IN_PROGRESS" | "PENDING_REQUESTER" | "RESOLVED" | "CLOSED" | "CANCELLED";
+  requestedPriority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  itPriority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  ticketOwner: string | null;
+  ownerId: number | null;
+  owner: { id: number; displayName: string; email: string; role: string } | null;
+  resolutionSummary: string | null;
+  requesterResolutionConfirmedAt: string | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  requester: {
+    id: number;
+    displayName: string;
+    email: string;
+  };
+  category: {
+    id: number;
+    name: string;
+    code?: string;
+  };
+  relatedSystem: {
+    id: number;
+    name: string;
+  };
+  attachments: any[];
+  comments?: TicketCommentDto[];
+  notes?: TicketCommentDto[];
+}
+
+export async function getStaffAssigneesApi(): Promise<StaffAssigneeDto[]> {
+  const res = await fetch(`${API_URL}/api/v1/users/staff`, {
+    method: "GET",
+    credentials: "include",
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    throw error;
+  }
+  return data;
+}
+
+export async function getTicketDetailApi(id: number): Promise<TicketDetailFullDto> {
+  const res = await fetch(`${API_URL}/api/v1/tickets/${id}`, {
+    method: "GET",
+    credentials: "include",
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    throw error;
+  }
+  return data;
+}
+
+export async function updateTicketOperationalApi(
+  id: number,
+  payload: {
+    ownerId?: number | null;
+    itPriority?: string;
+    status?: string;
+    resolutionSummary?: string;
+    version: number;
+  }
+): Promise<TicketDetailFullDto> {
+  const res = await fetch(`${API_URL}/api/v1/tickets/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    throw error;
+  }
+  return data;
+}
+
+export async function indicateResolutionApi(
+  id: number
+): Promise<{ success: boolean; requesterResolutionConfirmedAt: string; message: string }> {
+  const res = await fetch(`${API_URL}/api/v1/tickets/${id}/resolve-indication`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    throw error;
+  }
+  return data;
+}
+
+export async function getCommentsApi(id: number): Promise<TicketCommentDto[]> {
+  const res = await fetch(`${API_URL}/api/v1/tickets/${id}/comments`, {
+    method: "GET",
+    credentials: "include",
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    throw error;
+  }
+  return data;
+}
+
+export async function postCommentApi(id: number, content: string): Promise<TicketCommentDto> {
+  const res = await fetch(`${API_URL}/api/v1/tickets/${id}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ content }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    throw error;
+  }
+  return data;
+}
+
+export async function getNotesApi(id: number): Promise<TicketCommentDto[]> {
+  const res = await fetch(`${API_URL}/api/v1/tickets/${id}/notes`, {
+    method: "GET",
+    credentials: "include",
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    throw error;
+  }
+  return data;
+}
+
+export async function postNoteApi(id: number, content: string): Promise<TicketCommentDto> {
+  const res = await fetch(`${API_URL}/api/v1/tickets/${id}/notes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ content }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    throw error;
+  }
+  return data;
+}
+

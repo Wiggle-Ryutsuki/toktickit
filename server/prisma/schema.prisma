@@ -65,9 +65,10 @@ model User {
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
 
-  requestedTickets Ticket[]     @relation("RequesterTickets")
-  ownedTickets     Ticket[]     @relation("OwnedTickets")
-  attachments      Attachment[] @relation("UploadedAttachments")
+  requestedTickets Ticket[]        @relation("RequesterTickets")
+  ownedTickets     Ticket[]        @relation("OwnedTickets")
+  attachments      Attachment[]    @relation("UploadedAttachments")
+  comments         TicketComment[]
   sessions         Session[]
 
   @@map("users")
@@ -108,27 +109,35 @@ enum Priority {
   URGENT
 }
 
-model Ticket {
-  id                Int          @id @default(autoincrement())
-  ticketNo          String       @unique
-  title             String       // Maps to Ticket Summary
-  description       String
-  requesterId       Int
-  categoryId        Int
-  relatedSystemId   Int
-  requestedPriority Priority     @default(MEDIUM)
-  itPriority        Priority     @default(MEDIUM)
-  status            TicketStatus @default(NEW)
-  version           Int          @default(1)
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+enum CommentType {
+  PUBLIC
+  INTERNAL_NOTE
+}
 
-  requester         User          @relation("RequesterTickets", fields: [requesterId], references: [id])
-  ownerId           Int?
-  owner             User?         @relation("OwnedTickets", fields: [ownerId], references: [id])
-  category          Category      @relation(fields: [categoryId], references: [id])
-  relatedSystem     RelatedSystem @relation(fields: [relatedSystemId], references: [id])
-  attachments       Attachment[]
+model Ticket {
+  id                             Int             @id @default(autoincrement())
+  ticketNo                       String          @unique
+  title                          String          // Maps to Ticket Summary
+  description                    String
+  requesterId                    Int
+  categoryId                     Int
+  relatedSystemId                Int
+  requestedPriority              Priority        @default(MEDIUM)
+  itPriority                     Priority        @default(MEDIUM)
+  status                         TicketStatus    @default(NEW)
+  resolutionSummary              String?
+  requesterResolutionConfirmedAt DateTime?
+  version                        Int             @default(1)
+  createdAt                      DateTime        @default(now())
+  updatedAt                      DateTime        @updatedAt
+
+  requester                      User            @relation("RequesterTickets", fields: [requesterId], references: [id])
+  ownerId                        Int?
+  owner                          User?           @relation("OwnedTickets", fields: [ownerId], references: [id])
+  category                       Category        @relation(fields: [categoryId], references: [id])
+  relatedSystem                  RelatedSystem   @relation(fields: [relatedSystemId], references: [id])
+  attachments                    Attachment[]
+  comments                       TicketComment[]
 
   @@index([requesterId])
   @@index([ownerId])
@@ -136,6 +145,22 @@ model Ticket {
   @@index([categoryId])
   @@index([createdAt])
   @@map("tickets")
+}
+
+model TicketComment {
+  id        Int         @id @default(autoincrement())
+  ticketId  Int
+  authorId  Int
+  type      CommentType @default(PUBLIC)
+  content   String
+  createdAt DateTime    @default(now())
+
+  ticket    Ticket      @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author    User        @relation(fields: [authorId], references: [id])
+
+  @@index([ticketId, type])
+  @@index([createdAt])
+  @@map("ticket_comments")
 }
 
 model Attachment {

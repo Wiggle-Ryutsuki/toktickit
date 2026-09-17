@@ -92,3 +92,122 @@ export async function getStaffTicketsApi(params = {}) {
     }
     return data;
 }
+export async function getStaffAssigneesApi() {
+    const res = await fetch(`${API_URL}/api/v1/users/staff`, {
+        method: "GET",
+        credentials: "include",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}
+export async function getTicketDetailApi(id) {
+    const res = await fetch(`${API_URL}/api/v1/tickets/${id}`, {
+        method: "GET",
+        credentials: "include",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}
+export async function updateTicketOperationalApi(id, payload) {
+    const res = await fetch(`${API_URL}/api/v1/tickets/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}
+export async function indicateResolutionApi(id) {
+    const res = await fetch(`${API_URL}/api/v1/tickets/${id}/resolve-indication`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}
+export async function getCommentsApi(id) {
+    const res = await fetch(`${API_URL}/api/v1/tickets/${id}/comments`, {
+        method: "GET",
+        credentials: "include",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}
+export async function postCommentApi(id, content) {
+    const res = await fetch(`${API_URL}/api/v1/tickets/${id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ content }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}
+export async function getNotesApi(id) {
+    const res = await fetch(`${API_URL}/api/v1/tickets/${id}/notes`, {
+        method: "GET",
+        credentials: "include",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}
+export async function postNoteApi(id, content) {
+    const res = await fetch(`${API_URL}/api/v1/tickets/${id}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ content }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}

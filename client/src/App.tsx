@@ -10,6 +10,7 @@ import RequesterTicketDetail from "./components/RequesterTicketDetail.js";
 import Login from "./components/Login.js";
 import ChangePassword from "./components/ChangePassword.js";
 import StaffTicketQueue from "./components/StaffTicketQueue.js";
+import StaffTicketDetail from "./components/StaffTicketDetail.js";
 import "./theme.css";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
@@ -32,10 +33,19 @@ function AppContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (auth?.user && (auth.user.role === "IT_STAFF" || auth.user.role === "ADMINISTRATOR")) {
-      setActiveView((curr) => (curr === "tickets" ? "queue" : curr));
+    if (!auth?.user) {
+      setActiveView("tickets");
+      setSelectedTicketId(null);
+      return;
     }
-  }, [auth?.user?.role]);
+    if (auth.user.role === "IT_STAFF" || auth.user.role === "ADMINISTRATOR") {
+      setActiveView("queue");
+      setSelectedTicketId(null);
+    } else {
+      setActiveView("tickets");
+      setSelectedTicketId(null);
+    }
+  }, [auth?.user?.id]);
 
   const handleNavigate = (view: ViewType) => {
     if (view !== "ticket-detail") {
@@ -100,13 +110,23 @@ function AppContent() {
           />
         </div>
       ) : activeView === "ticket-detail" && selectedTicketId !== null ? (
-        <RequesterTicketDetail
-          ticketId={selectedTicketId}
-          onBack={() => {
-            setSelectedTicketId(null);
-            setActiveView(auth?.user?.role === "REQUESTER" ? "tickets" : "queue");
-          }}
-        />
+        auth?.user && (auth.user.role === "IT_STAFF" || auth.user.role === "ADMINISTRATOR") ? (
+          <StaffTicketDetail
+            ticketId={selectedTicketId}
+            onBack={() => {
+              setSelectedTicketId(null);
+              setActiveView("queue");
+            }}
+          />
+        ) : (
+          <RequesterTicketDetail
+            ticketId={selectedTicketId}
+            onBack={() => {
+              setSelectedTicketId(null);
+              setActiveView("tickets");
+            }}
+          />
+        )
       ) : activeView === "create-ticket" ? (
         <CreateTicket
           onCancel={() => setActiveView(auth?.user?.role === "REQUESTER" ? "tickets" : "queue")}
