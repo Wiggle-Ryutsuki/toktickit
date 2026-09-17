@@ -336,63 +336,84 @@ body {
   border-bottom: none;
 }
 
-/* Badges - Status */
+/* Badges - Status (WCAG 2.2 AA Compliant) */
 .badge-status-new {
   background-color: #e0f2fe;
   color: #0369a1;
   border: 1px solid #bae6fd;
 }
 
-.badge-status-assigned,
+.badge-status-assigned {
+  background-color: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+}
+
 .badge-status-in-progress {
+  background-color: #eaf6ef;
+  color: #0f5132;
+  border: 1px solid #c6ebd4;
+}
+
+.badge-status-pending-requester {
   background-color: #fef3c7;
   color: #b45309;
   border: 1px solid #fde68a;
 }
 
-.badge-status-pending-requester {
-  background-color: #f3e8ff;
-  color: #7e22ce;
-  border: 1px solid #e9d5ff;
-}
-
-.badge-status-resolved,
-.badge-status-closed {
+.badge-status-resolved {
   background-color: #dcfce7;
   color: #15803d;
   border: 1px solid #bbf7d0;
 }
 
-.badge-status-cancelled {
-  background-color: #f3f4f6;
-  color: #4b5563;
-  border: 1px solid #e5e7eb;
+.badge-status-closed {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 
-/* Badges - Priority */
+.badge-status-cancelled {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* Badges - Priority (WCAG 2.2 AA Compliant) */
 .badge-priority-urgent {
-  background-color: #fdf2f2;
-  color: #b3261e;
+  background-color: #fee2e2;
+  color: #b91c1c;
   border: 1px solid #fecaca;
   font-weight: 600;
 }
 
 .badge-priority-high {
-  background-color: #fff7ed;
+  background-color: #ffedd5;
   color: #c2410c;
   border: 1px solid #fed7aa;
 }
 
 .badge-priority-medium {
-  background-color: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fde68a;
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
 }
 
 .badge-priority-low {
-  background-color: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+/* Sticky column for tablet view */
+@media (min-width: 768px) and (max-width: 991px) {
+  .zen-table-sticky-col {
+    position: sticky;
+    left: 0;
+    background-color: var(--color-surface);
+    z-index: 2;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+  }
 }
 
 /* Mobile Stacked Card Layout */

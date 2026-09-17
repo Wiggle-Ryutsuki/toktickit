@@ -57,3 +57,38 @@ export async function changePasswordApi(currentPassword, newPassword, confirmPas
     }
     return data.user;
 }
+export async function getStaffTicketsApi(params = {}) {
+    const q = new URLSearchParams();
+    if (params.search && params.search.trim())
+        q.set("search", params.search.trim());
+    if (params.categoryId && params.categoryId !== "ALL")
+        q.set("categoryId", String(params.categoryId));
+    if (params.status && params.status !== "ALL")
+        q.set("status", params.status);
+    if (params.requestedPriority && params.requestedPriority !== "ALL")
+        q.set("requestedPriority", params.requestedPriority);
+    if (params.itPriority && params.itPriority !== "ALL")
+        q.set("itPriority", params.itPriority);
+    if (params.assigned && params.assigned !== "ALL" && params.assigned !== "all")
+        q.set("assigned", params.assigned);
+    if (params.sortBy)
+        q.set("sortBy", params.sortBy);
+    if (params.sortOrder)
+        q.set("sortOrder", params.sortOrder);
+    if (params.page)
+        q.set("page", String(params.page));
+    if (params.limit)
+        q.set("limit", String(params.limit));
+    const res = await fetch(`${API_URL}/api/v1/tickets?${q.toString()}`, {
+        method: "GET",
+        credentials: "include",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}

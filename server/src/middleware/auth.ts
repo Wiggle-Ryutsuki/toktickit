@@ -93,3 +93,34 @@ export function requirePasswordChangeClear(
   }
   next();
 }
+
+export function requireRole(...allowedRoles: (string)[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required. Please log in.",
+          fieldErrors: [],
+          correlationId: `req-${Date.now()}-unauth`,
+        },
+      });
+      return;
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Access denied. IT Staff or Administrator role required.",
+          fieldErrors: [],
+          correlationId: `req-${Date.now()}-forbidden`,
+        },
+      });
+      return;
+    }
+
+    next();
+  };
+}
+

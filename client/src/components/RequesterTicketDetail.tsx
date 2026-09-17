@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import { useRequester } from "../context/RequesterContext.js";
+import { AuthContext } from "../context/AuthContext.js";
 import AttachmentSection, { AttachmentDto } from "./AttachmentSection.js";
 
 export interface RequesterTicketDetailProps {
@@ -91,6 +92,8 @@ function getPriorityBadgeClass(priority: string): string {
 
 export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTicketDetailProps) {
   const { selectedRequester } = useRequester();
+  const auth = useContext(AuthContext);
+  const isStaffOrAdmin = auth?.user?.role === "IT_STAFF" || auth?.user?.role === "ADMINISTRATOR";
 
   const [ticket, setTicket] = useState<TicketDetailDto | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -104,6 +107,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
 
     try {
       const res = await fetch(`${API_URL}/api/tickets/${ticketId}`, {
+        credentials: "include",
         headers: {
           "X-Requester-Id": selectedRequester ? String(selectedRequester.id) : "1",
         },
@@ -140,7 +144,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
             className="btn btn-zen-secondary btn-sm"
             onClick={onBack}
           >
-            &larr; Back to My Tickets
+            &larr; {isStaffOrAdmin ? "Back to Ticket Queue" : "Back to My Tickets"}
           </button>
         </div>
         <div className="card border-0 shadow-sm p-5 text-center bg-white">
@@ -163,7 +167,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
             className="btn btn-zen-secondary btn-sm"
             onClick={onBack}
           >
-            &larr; Back to My Tickets
+            &larr; {isStaffOrAdmin ? "Back to Ticket Queue" : "Back to My Tickets"}
           </button>
         </div>
         <div className="alert alert-danger shadow-sm p-4 text-center bg-white border border-danger-subtle rounded-3">
@@ -175,7 +179,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
             This ticket belongs to another requester and cannot be accessed.
           </p>
           <button type="button" className="btn btn-zen-primary" onClick={onBack}>
-            Back to My Tickets
+            {isStaffOrAdmin ? "Back to Ticket Queue" : "Back to My Tickets"}
           </button>
         </div>
       </div>
@@ -192,7 +196,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
             className="btn btn-zen-secondary btn-sm"
             onClick={onBack}
           >
-            &larr; Back to My Tickets
+            &larr; {isStaffOrAdmin ? "Back to Ticket Queue" : "Back to My Tickets"}
           </button>
         </div>
         <div className="alert alert-warning shadow-sm p-4 text-center bg-white border border-warning-subtle rounded-3">
@@ -202,7 +206,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
             {errorMessage || "Ticket not found."}
           </p>
           <button type="button" className="btn btn-zen-primary" onClick={onBack}>
-            Back to My Tickets
+            {isStaffOrAdmin ? "Back to Ticket Queue" : "Back to My Tickets"}
           </button>
         </div>
       </div>
@@ -223,7 +227,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
                 className="btn btn-link p-0 text-decoration-none text-muted small"
                 onClick={onBack}
               >
-                My Tickets
+                {isStaffOrAdmin ? "Ticket Queue" : "My Tickets"}
               </button>
             </li>
             <li className="breadcrumb-item active small" aria-current="page">
@@ -236,7 +240,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
           className="btn btn-zen-secondary btn-sm"
           onClick={onBack}
         >
-          &larr; Back to My Tickets
+          &larr; {isStaffOrAdmin ? "Back to Ticket Queue" : "Back to My Tickets"}
         </button>
       </div>
 

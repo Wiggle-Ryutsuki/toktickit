@@ -48,4 +48,109 @@ describe("Authorization & Scoping Tests (API-07)", () => {
     // Must be bound to Jennifer Anderson (id: loggedInUserId), NOT 999
     expect(ticketInDb?.requesterId).toBe(loggedInUserId);
   });
+
+  it("API-08: Requester attempts to access IT Staff queue returns HTTP 403 Forbidden (FR-12, AC-13)", async () => {
+    // 1. Log in as Jennifer Anderson (Role: REQUESTER)
+    const loginRes = await request(app)
+      .post("/api/v1/auth/login")
+      .send({
+        email: "jennifer.anderson@kmutt.ac.th",
+        password: "Password123!",
+      });
+
+    expect(loginRes.status).toBe(200);
+    const cookie = loginRes.headers["set-cookie"];
+
+    // 2. Requester sends GET /api/v1/tickets without authorization to IT Staff Queue
+    const res = await request(app)
+      .get("/api/v1/tickets")
+      .set("Cookie", cookie);
+
+    // 3. Verify HTTP 403 FORBIDDEN and zero ticket records returned
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBeDefined();
+    expect(res.body.error.code).toBe("FORBIDDEN");
+    expect(res.body.tickets).toBeUndefined();
+  });
+
+  it("API-09: IT Staff and Administrator can view any ticket detail, while unauthorized Requester receives 403 (FR-13, Role Matrix)", async () => {
+    // 1. Ensure a ticket created by Sarah (or non-Jennifer requester) exists
+    const user2 = await prisma.user.findFirst({
+      where: { role: "REQUESTER", email: { not: "jennifer.anderson@kmutt.ac.th" } },
+    });
+    expect(user2).toBeDefined();
+
+    const category = await prisma.category.findFirst();
+    const system = await prisma.relatedSystem.findFirst();
+
+    const targetTicket = await prisma.ticket.upsert({
+      where: { ticketNo: "TKT-2026-99001" },
+      update: {},
+      create: {
+        ticketNo: "TKT-2026-99001",
+        title: "Staff Detail Access Verification Ticket",
+        description: "Testing staff and admin access to ticket detail.",
+        requesterId: user2!.id,
+        categoryId: category!.id,
+        relatedSystemId: system!.id,
+        requestedPriority: "MEDIUM",
+        itPriority: "MEDIUM",
+        status: "NEW",
+      },
+    });
+
+    // 2. Log in as IT Staff (Malee Jaidee)
+    const staffLogin = await request(app)
+      .post("/api/v1/auth/login")
+      .send({
+        email: "staff.malee@kmutt.ac.th",
+        password: "Password123!",
+      });
+    expect(staffLogin.status).toBe(200);
+    const staffCookie = staffLogin.headers["set-cookie"];
+
+    // IT Staff can view Sarah's ticket
+    const staffViewRes = await request(app)
+      .get(`/api/v1/tickets/${targetTicket.id}`)
+      .set("Cookie", staffCookie);
+    expect(staffViewRes.status).toBe(200);
+    expect(staffViewRes.body).toHaveProperty("id", targetTicket.id);
+    expect(staffViewRes.body).toHaveProperty("summary");
+
+    // 3. Log in as Administrator (Admin TokTickIT)
+    const adminLogin = await request(app)
+      .post("/api/v1/auth/login")
+      .send({
+        email: "admin.toktickit@kmutt.ac.th",
+        password: "Password123!",
+      });
+    expect(adminLogin.status).toBe(200);
+    const adminCookie = adminLogin.headers["set-cookie"];
+
+    // Administrator can view target ticket
+    const adminViewRes = await request(app)
+      .get(`/api/v1/tickets/${targetTicket.id}`)
+      .set("Cookie", adminCookie);
+    expect(adminViewRes.status).toBe(200);
+    expect(adminViewRes.body).toHaveProperty("id", targetTicket.id);
+
+    // 4. Log in as a different Requester (Jennifer Anderson)
+    const requesterLogin = await request(app)
+      .post("/api/v1/auth/login")
+      .send({
+        email: "jennifer.anderson@kmutt.ac.th",
+        password: "Password123!",
+      });
+    expect(requesterLogin.status).toBe(200);
+    const requesterCookie = requesterLogin.headers["set-cookie"];
+
+    // Jennifer is forbidden from viewing target ticket owned by another requester
+    const requesterViewRes = await request(app)
+      .get(`/api/v1/tickets/${targetTicket.id}`)
+      .set("Cookie", requesterCookie);
+    expect(requesterViewRes.status).toBe(403);
+    expect(requesterViewRes.body.error.code).toBe("FORBIDDEN");
+  });
 });
+
+
