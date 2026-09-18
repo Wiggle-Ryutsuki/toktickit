@@ -211,3 +211,84 @@ export async function postNoteApi(id, content) {
     }
     return data;
 }
+export async function getAdminUsersApi(params) {
+    const q = new URLSearchParams();
+    if (params?.search && params.search.trim())
+        q.set("search", params.search.trim());
+    if (params?.role && params.role !== "ALL")
+        q.set("role", params.role);
+    const res = await fetch(`${API_URL}/api/v1/admin/users?${q.toString()}`, {
+        method: "GET",
+        credentials: "include",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}
+export async function createAdminUserApi(payload) {
+    const res = await fetch(`${API_URL}/api/v1/admin/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}
+export async function getAdminUserByIdApi(id) {
+    const res = await fetch(`${API_URL}/api/v1/admin/users/${id}`, {
+        method: "GET",
+        credentials: "include",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}
+export async function updateAdminUserApi(id, payload) {
+    const res = await fetch(`${API_URL}/api/v1/admin/users/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}
+export async function resetUserPasswordApi(id, payload) {
+    const res = await fetch(`${API_URL}/api/v1/admin/users/${id}/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}

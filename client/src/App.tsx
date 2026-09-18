@@ -11,6 +11,7 @@ import Login from "./components/Login.js";
 import ChangePassword from "./components/ChangePassword.js";
 import StaffTicketQueue from "./components/StaffTicketQueue.js";
 import StaffTicketDetail from "./components/StaffTicketDetail.js";
+import UserManagement from "./components/UserManagement.js";
 import "./theme.css";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
@@ -22,8 +23,13 @@ function AppContent() {
   const auth = useContext(AuthContext);
   const { selectedRequester, isSelectorOpen } = useRequester();
   const [activeView, setActiveView] = useState<ViewType>(() => {
-    if (typeof window !== "undefined" && window.location.hash.includes("queue")) {
-      return "queue";
+    if (typeof window !== "undefined") {
+      if (window.location.hash.includes("admin")) {
+        return "admin";
+      }
+      if (window.location.hash.includes("queue")) {
+        return "queue";
+      }
     }
     return "tickets";
   });
@@ -33,12 +39,38 @@ function AppContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const handleHashChange = () => {
+      if (typeof window !== "undefined") {
+        const hash = window.location.hash;
+        if (hash.includes("admin")) {
+          setActiveView("admin");
+        } else if (hash.includes("queue")) {
+          setActiveView("queue");
+        } else if (hash.includes("create-ticket")) {
+          setActiveView("create-ticket");
+        } else if (hash.includes("my-tickets")) {
+          setActiveView("tickets");
+        }
+      }
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  useEffect(() => {
     if (!auth?.user) {
       setActiveView("tickets");
       setSelectedTicketId(null);
       return;
     }
-    if (auth.user.role === "IT_STAFF" || auth.user.role === "ADMINISTRATOR") {
+    if (auth.user.role === "ADMINISTRATOR") {
+      if (typeof window !== "undefined" && window.location.hash.includes("admin")) {
+        setActiveView("admin");
+      } else {
+        setActiveView("queue");
+      }
+      setSelectedTicketId(null);
+    } else if (auth.user.role === "IT_STAFF") {
       setActiveView("queue");
       setSelectedTicketId(null);
     } else {
@@ -52,6 +84,17 @@ function AppContent() {
       setSelectedTicketId(null);
     }
     setActiveView(view);
+    if (typeof window !== "undefined") {
+      if (view === "admin") {
+        window.location.hash = "#/admin/users";
+      } else if (view === "queue") {
+        window.location.hash = "#/queue";
+      } else if (view === "tickets") {
+        window.location.hash = "#/my-tickets";
+      } else if (view === "create-ticket") {
+        window.location.hash = "#/create-ticket";
+      }
+    }
   };
 
   const handleViewDetail = (id: number) => {
@@ -135,6 +178,10 @@ function AppContent() {
       ) : activeView === "queue" ? (
         <StaffTicketQueue
           onViewDetail={handleViewDetail}
+          onNavigate={handleNavigate}
+        />
+      ) : activeView === "admin" ? (
+        <UserManagement
           onNavigate={handleNavigate}
         />
       ) : (

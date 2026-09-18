@@ -46,7 +46,7 @@ TokTickIT enforces a disciplined Test-Driven Development (TDD) methodology. Test
 | **API-07** | API | FR-03, BR-03, AC-03 | Requester ticket scoping & spoof rejection | API binds ticket operations to session user; client-supplied `requesterId` is ignored | `server/tests/lab-03/authorization.api.test.ts` | Pass |
 | **API-08** | API | FR-12, AC-06 | Requester attempts to access IT Staff queue | Returns HTTP 403 Forbidden | `server/tests/lab-03/authorization.api.test.ts` | Pass |
 | **API-09** | API | FR-19, BR-04, AC-04 | Requester attempts to read or post Internal Notes | Returns HTTP 403 Forbidden; zero note content exposed | `server/tests/lab-03/authorization.api.test.ts` | Pass |
-| **API-10** | API | FR-28, AC-13 | Non-Administrator attempts to access Admin API | Returns HTTP 403 Forbidden | `server/tests/lab-03/authorization.api.test.ts` | Not Passed |
+| **API-10** | API | FR-28, AC-13 | Non-Administrator attempts to access Admin API | Returns HTTP 403 Forbidden | `server/tests/lab-03/authorization.api.test.ts` | Pass |
 | **API-11** | API | FR-15 | Requester attempts to modify IT Priority | Returns HTTP 403 Forbidden | `server/tests/lab-03/authorization.api.test.ts` | Pass |
 | **API-12** | API | FR-16, BR-05 | Requester attempts to transition status to Resolved/Closed | Returns HTTP 403 Forbidden | `server/tests/lab-03/authorization.api.test.ts` | Pass |
 | **API-13** | API | FR-08, FR-09, AC-06 | IT Staff Queue search across Ticket No and Summary | Returns HTTP 200 with matching tickets and pagination counts | `server/tests/lab-03/staff-queue.api.test.ts` | Pass |
@@ -64,13 +64,13 @@ TokTickIT enforces a disciplined Test-Driven Development (TDD) methodology. Test
 | **API-25** | API | BR-10 | Reject empty/whitespace-only comments and notes | Submitting whitespace-only body returns HTTP 422 Unprocessable Entity | `server/tests/lab-03/comments-notes.api.test.ts` | Pass |
 | **API-26** | API | FR-20, BR-05, AC-09 | Requester submits "Problem Appears Resolved" | Records confirmation timestamp/flag; ticket formal status is unchanged | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Pass |
 | **API-27** | API | FR-21 | Attachment upload and soft-removal continuity | Lab 2 attachment upload, streaming, and soft-removal with reason continue to pass | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Pass |
-| **API-28** | API | FR-22, FR-23 | Administrator retrieves user list with search/filter | Returns HTTP 200 with user list filtered by name/email or role | `server/tests/lab-03/users-admin.api.test.ts` | Not Passed |
-| **API-29** | API | FR-24, BR-11, AC-11 | Administrator creates user with initial password | Persists user with Argon2id hash, flags `mustChangePassword = true`, returns 201 | `server/tests/lab-03/users-admin.api.test.ts` | Not Passed |
-| **API-30** | API | FR-28 | Reject user creation with duplicate email address | Returns HTTP 422 / 409 with duplicate email error | `server/tests/lab-03/users-admin.api.test.ts` | Not Passed |
-| **API-31** | API | FR-25 | Administrator updates user basic info and role | Updates displayName, email, and role, returns HTTP 200 | `server/tests/lab-03/users-admin.api.test.ts` | Not Passed |
-| **API-32** | API | FR-26 | Administrator resets initial password for a user | Updates password hash and sets `mustChangePassword = true`, returns HTTP 200 | `server/tests/lab-03/users-admin.api.test.ts` | Not Passed |
-| **API-33** | API | FR-27, BR-12, AC-12 | Administrator attempts self-deactivation | Returns HTTP 422 `SELF_DEACTIVATION_PROHIBITED` | `server/tests/lab-03/users-admin.api.test.ts` | Not Passed |
-| **API-34** | API | FR-27, BR-13, AC-12 | Deactivate or re-role last active Administrator | Returns HTTP 422 `LAST_ADMIN_PROTECTION` | `server/tests/lab-03/users-admin.api.test.ts` | Not Passed |
+| **API-28** | API | FR-22, FR-23 | Administrator retrieves user list with search/filter | Returns HTTP 200 with user list filtered by name/email or role | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
+| **API-29** | API | FR-24, BR-11, AC-11 | Administrator creates user with initial password | Persists user with Argon2id hash, flags `mustChangePassword = true`, returns 201 | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
+| **API-30** | API | FR-28 | Reject user creation with duplicate email address | Returns HTTP 422 / 409 with duplicate email error | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
+| **API-31** | API | FR-25 | Administrator updates user basic info and role | Updates displayName, email, and role, returns HTTP 200 | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
+| **API-32** | API | FR-26 | Administrator resets initial password for a user | Updates password hash and sets `mustChangePassword = true`, returns HTTP 200 | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
+| **API-33** | API | FR-27, BR-12, AC-12 | Administrator attempts self-deactivation | Returns HTTP 422 `SELF_DEACTIVATION_PROHIBITED` | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
+| **API-34** | API | FR-27, BR-13, AC-12 | Deactivate or re-role last active Administrator | Returns HTTP 422 `LAST_ADMIN_PROTECTION` | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
 | **UI-01** | UI | FR-01, FR-02, AC-01 | Login screen rendering, inputs, and validation | Validates required email/password format; shows busy state and safe failure alert | `client/tests/lab-03/Login.test.tsx` | Pass |
 | **UI-02** | UI | FR-04, FR-05, AC-02 | Change Password screen and validation indicators | Renders rule checklist; enables submission only when password rules are satisfied | `client/tests/lab-03/ChangePassword.test.tsx` | Pass |
 | **UI-03** | UI | FR-07, AC-14 | Shell Header display and Logout interaction | Displays authenticated user name, role badge, removes dev selector, triggers logout | `client/tests/lab-03/Navbar.test.tsx` | Pass |
@@ -79,13 +79,13 @@ TokTickIT enforces a disciplined Test-Driven Development (TDD) methodology. Test
 | **UI-06** | UI | FR-13, FR-14, FR-15 | IT Staff Ticket Detail operational controls | Renders owner dropdown, priority dropdown, status transition buttons | `client/tests/lab-03/StaffTicketDetail.test.tsx` | Pass |
 | **UI-07** | UI | FR-17, FR-18, BR-04 | Comments & Notes visual distinction | Renders Public Comments in green/neutral card and Internal Notes in amber/warning style | `client/tests/lab-03/StaffTicketDetail.test.tsx` | Pass |
 | **UI-08** | UI | FR-20, BR-05, AC-09 | Requester Ticket Detail "Problem Appears Resolved" | Renders confirmation button for requester; updates indicator without status change | `client/tests/lab-03/RequesterTicketDetail.test.tsx` | Pass |
-| **UI-09** | UI | FR-22, FR-23, FR-24 | Administrator User Management screen & modal | Renders user list, search bar, role filter, and "+ Create User" modal | `client/tests/lab-03/UserManagement.test.tsx` | Not Passed |
-| **UI-10** | UI | FR-27, BR-12, BR-13 | Administrator safety alert rendering | Displays explicit warning alert when attempting self-deactivation or last-admin removal | `client/tests/lab-03/UserManagement.test.tsx` | Not Passed |
+| **UI-09** | UI | FR-22, FR-23, FR-24 | Administrator User Management screen & modal | Renders user list, search bar, role filter, and "+ Create User" modal | `client/tests/lab-03/UserManagement.test.tsx` | Pass |
+| **UI-10** | UI | FR-27, BR-12, BR-13 | Administrator safety alert rendering | Displays explicit warning alert when attempting self-deactivation or last-admin removal | `client/tests/lab-03/UserManagement.test.tsx` | Pass |
 | **E2E-01** | E2E | AC-01, AC-14 | Complete authentication and logout flow | Log in with valid credentials &rarr; verify shell &rarr; log out &rarr; verify access revoked | `e2e/lab-03/authentication.spec.ts` | Pass |
 | **E2E-02** | E2E | AC-02, FR-04, FR-05 | Initial password forced change workflow | Log in with initial password &rarr; verify intercepted &rarr; change password &rarr; enter app | `e2e/lab-03/authentication.spec.ts` | Pass |
 | **E2E-03** | E2E | AC-06, AC-07, AC-08 | IT Staff queue triage and ticket operation flow | Log in as IT Staff &rarr; filter queue &rarr; open ticket &rarr; claim &rarr; update priority &rarr; post note | `e2e/lab-03/staff-ticket-flow.spec.ts` | Pass |
 | **E2E-04** | E2E | AC-04, AC-10 | Public comment vs internal note boundary flow | IT Staff posts note and comment &rarr; Requester logs in &rarr; sees comment, note is hidden | `e2e/lab-03/staff-ticket-flow.spec.ts` | Pass |
-| **E2E-05** | E2E | AC-11, AC-12, AC-13 | Administrator user management lifecycle flow | Create user &rarr; verify in list &rarr; test self-deactivation block &rarr; non-admin blocked | `e2e/lab-03/user-administration.spec.ts` | Not Passed |
+| **E2E-05** | E2E | AC-11, AC-12, AC-13 | Administrator user management lifecycle flow | Create user &rarr; verify in list &rarr; test self-deactivation block &rarr; non-admin blocked | `e2e/lab-03/user-administration.spec.ts` | Pass |
 
 ---
 

@@ -7,8 +7,8 @@
 | PR | Branch | Reviewer verdict |
 |----|--------|------------------|
 | https://github.com/Wiggle-Ryutsuki/toktickit/pull/28 | feature/9-authentication-password-change | Keep up the good work. |
-| https://github.com/Wiggle-Ryutsuki/toktickit/pull/29 | feature/10-staff-queue |  |
-| https://github.com/Wiggle-Ryutsuki/toktickit/pull/30 | feature/11-staff-ticket-detail |  |
+| https://github.com/Wiggle-Ryutsuki/toktickit/pull/29 | feature/10-staff-queue | I approve of your code, proud of you. |
+| https://github.com/Wiggle-Ryutsuki/toktickit/pull/30 | feature/11-staff-ticket-detail | Good job, I’m very proud of you. |
 | https://github.com/Wiggle-Ryutsuki/toktickit/pull/31 | feature/12-user-management |  |
 
 **Reviewer comment I received:**   

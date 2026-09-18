@@ -6,7 +6,12 @@ import { getPrisma } from "./prisma.js";
 void getPrisma;
 
 import cookieParser from "cookie-parser";
-import { authenticateSession, requirePasswordChangeClear } from "./middleware/auth.js";
+import {
+  authenticateSession,
+  requirePasswordChangeClear,
+  requireAuth,
+  requireRole,
+} from "./middleware/auth.js";
 import { login, logout, getCurrentUser, changePassword } from "./controllers/auth.controller.js";
 
 // The Express app is exported separately from app.listen() (see index.ts) so
@@ -186,7 +191,6 @@ app.get("/api/tickets", listTickets);
 // ---------------------------------------------------------------------------
 // Feature 10 — IT Staff Ticket Queue (GET /api/v1/tickets & /api/v1/staff/tickets)
 // ---------------------------------------------------------------------------
-import { requireRole } from "./middleware/auth.js";
 import { getStaffQueue } from "./controllers/staff-queue.controller.js";
 
 app.get("/api/v1/tickets", (req, res, next) => {
@@ -308,6 +312,34 @@ app.delete("/api/tickets/:id/attachments/:attachmentId", softRemoveAttachment);
 app.delete("/api/v1/tickets/:id/attachments/:attachmentId", softRemoveAttachment);
 app.delete("/api/attachments/:id", softRemoveAttachment);
 app.delete("/api/v1/attachments/:id", softRemoveAttachment);
+
+// ---------------------------------------------------------------------------
+// Feature 12 — Administrator User Management
+// ---------------------------------------------------------------------------
+import {
+  getAdminUsers,
+  createAdminUser,
+  getAdminUserById,
+  updateAdminUser,
+  resetUserPassword,
+} from "./controllers/admin-users.controller.js";
+
+const requireAdmin = [requireAuth, requireRole("ADMINISTRATOR")];
+
+app.get("/api/admin/users", ...requireAdmin, getAdminUsers);
+app.get("/api/v1/admin/users", ...requireAdmin, getAdminUsers);
+
+app.post("/api/admin/users", ...requireAdmin, createAdminUser);
+app.post("/api/v1/admin/users", ...requireAdmin, createAdminUser);
+
+app.get("/api/admin/users/:id", ...requireAdmin, getAdminUserById);
+app.get("/api/v1/admin/users/:id", ...requireAdmin, getAdminUserById);
+
+app.patch("/api/admin/users/:id", ...requireAdmin, updateAdminUser);
+app.patch("/api/v1/admin/users/:id", ...requireAdmin, updateAdminUser);
+
+app.post("/api/admin/users/:id/reset-password", ...requireAdmin, resetUserPassword);
+app.post("/api/v1/admin/users/:id/reset-password", ...requireAdmin, resetUserPassword);
 
 export default app;
 
