@@ -199,9 +199,20 @@ app.get("/api/v1/staff/tickets", requireRole("IT_STAFF", "ADMINISTRATOR"), getSt
 app.get("/api/staff/tickets", requireRole("IT_STAFF", "ADMINISTRATOR"), getStaffQueue);
 
 // ---------------------------------------------------------------------------
-// Feature 8 — Ticket Detail (View Mode) & Attachment Lifecycle
+// Feature 8 & 11 — Ticket Detail, Operations, Comments & Notes
 // ---------------------------------------------------------------------------
-import { getTicketDetail } from "./controllers/ticket-detail.controller.js";
+import {
+  getTicketDetail,
+  updateTicketOperational,
+  indicateResolution,
+} from "./controllers/ticket-detail.controller.js";
+import {
+  getComments,
+  postComment,
+  getNotes,
+  postNote,
+} from "./controllers/comments-notes.controller.js";
+import { getStaffAssignees } from "./controllers/staff-assignees.controller.js";
 import {
   uploadAttachment,
   downloadAttachment,
@@ -254,9 +265,33 @@ const handleSingleAttachmentUpload = (req: Request, res: Response, next: express
   });
 };
 
-// Ticket Detail
+// Staff Assignees List
+app.get("/api/users/staff", getStaffAssignees);
+app.get("/api/v1/users/staff", getStaffAssignees);
+app.get("/api/staff", getStaffAssignees);
+app.get("/api/v1/staff", getStaffAssignees);
+
+// Ticket Detail & Operational Updates
 app.get("/api/tickets/:id", getTicketDetail);
 app.get("/api/v1/tickets/:id", getTicketDetail);
+app.patch("/api/tickets/:id", updateTicketOperational);
+app.patch("/api/v1/tickets/:id", updateTicketOperational);
+
+// Requester Resolution Indication
+app.post("/api/tickets/:id/resolve-indication", indicateResolution);
+app.post("/api/v1/tickets/:id/resolve-indication", indicateResolution);
+
+// Public Comments
+app.get("/api/tickets/:id/comments", getComments);
+app.get("/api/v1/tickets/:id/comments", getComments);
+app.post("/api/tickets/:id/comments", postComment);
+app.post("/api/v1/tickets/:id/comments", postComment);
+
+// Internal Notes
+app.get("/api/tickets/:id/notes", getNotes);
+app.get("/api/v1/tickets/:id/notes", getNotes);
+app.post("/api/tickets/:id/notes", postNote);
+app.post("/api/v1/tickets/:id/notes", postNote);
 
 // Attachment Upload
 app.post("/api/tickets/:id/attachments", handleSingleAttachmentUpload, uploadAttachment);

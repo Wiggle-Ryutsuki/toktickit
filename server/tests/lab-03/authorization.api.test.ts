@@ -151,6 +151,112 @@ describe("Authorization & Scoping Tests (API-07)", () => {
     expect(requesterViewRes.status).toBe(403);
     expect(requesterViewRes.body.error.code).toBe("FORBIDDEN");
   });
+
+  it("API-09: Requester attempts to read or post Internal Notes returns HTTP 403 Forbidden (FR-19, BR-04, AC-04)", async () => {
+    // 1. Create a ticket owned by Jennifer
+    const category = await prisma.category.findFirst();
+    const system = await prisma.relatedSystem.findFirst();
+    const jennifer = await prisma.user.findUnique({
+      where: { email: "jennifer.anderson@kmutt.ac.th" },
+    });
+
+    const ticket = await prisma.ticket.create({
+      data: {
+        ticketNo: `TKT-NOTE-AUTH-${Date.now()}`,
+        title: "Requester Note Guard Ticket",
+        description: "Checking that requester cannot access or post internal notes.",
+        requesterId: jennifer!.id,
+        categoryId: category!.id,
+        relatedSystemId: system!.id,
+        requestedPriority: "LOW",
+        itPriority: "LOW",
+        status: "IN_PROGRESS",
+      },
+    });
+
+    const reqLogin = await request(app).post("/api/v1/auth/login").send({
+      email: "jennifer.anderson@kmutt.ac.th",
+      password: "Password123!",
+    });
+    const requesterCookie = reqLogin.headers["set-cookie"];
+
+    // Requester GET /notes -> 403
+    const getNotesRes = await request(app)
+      .get(`/api/v1/tickets/${ticket.id}/notes`)
+      .set("Cookie", requesterCookie);
+    expect(getNotesRes.status).toBe(403);
+    expect(getNotesRes.body.error.code).toBe("FORBIDDEN");
+
+    // Requester POST /notes -> 403
+    const postNoteRes = await request(app)
+      .post(`/api/v1/tickets/${ticket.id}/notes`)
+      .set("Cookie", requesterCookie)
+      .send({ content: "Sneaky internal note attempt" });
+    expect(postNoteRes.status).toBe(403);
+    expect(postNoteRes.body.error.code).toBe("FORBIDDEN");
+  });
+
+  it("API-11: Requester attempts to modify IT Priority returns HTTP 403 Forbidden (FR-15)", async () => {
+    const jennifer = await prisma.user.findUnique({
+      where: { email: "jennifer.anderson@kmutt.ac.th" },
+    });
+    const ticket = await prisma.ticket.findFirst({
+      where: { requesterId: jennifer!.id },
+    });
+
+    const reqLogin = await request(app).post("/api/v1/auth/login").send({
+      email: "jennifer.anderson@kmutt.ac.th",
+      password: "Password123!",
+    });
+    const requesterCookie = reqLogin.headers["set-cookie"];
+
+    const res = await request(app)
+      .patch(`/api/v1/tickets/${ticket!.id}`)
+      .set("Cookie", requesterCookie)
+      .send({ itPriority: "CRITICAL", version: ticket!.version });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe("FORBIDDEN");
+  });
+
+  it("API-12: Requester attempts to transition status to Resolved/Closed returns HTTP 403 Forbidden (FR-16, BR-05)", async () => {
+    const jennifer = await prisma.user.findUnique({
+      where: { email: "jennifer.anderson@kmutt.ac.th" },
+    });
+    const ticket = await prisma.ticket.findFirst({
+      where: { requesterId: jennifer!.id },
+    });
+
+    const reqLogin = await request(app).post("/api/v1/auth/login").send({
+      email: "jennifer.anderson@kmutt.ac.th",
+      password: "Password123!",
+    });
+    const requesterCookie = reqLogin.headers["set-cookie"];
+
+    const resResolved = await request(app)
+      .patch(`/api/v1/tickets/${ticket!.id}`)
+      .set("Cookie", requesterCookie)
+      .send({
+        status: "RESOLVED",
+        resolutionSummary: "Attempted self resolution by requester",
+        version: ticket!.version,
+      });
+
+    expect(resResolved.status).toBe(403);
+    expect(resResolved.body.error.code).toBe("FORBIDDEN");
+
+    const resClosed = await request(app)
+      .patch(`/api/v1/tickets/${ticket!.id}`)
+      .set("Cookie", requesterCookie)
+      .send({
+        status: "CLOSED",
+        resolutionSummary: "Attempted direct close by requester",
+        version: ticket!.version,
+      });
+
+    expect(resClosed.status).toBe(403);
+    expect(resClosed.body.error.code).toBe("FORBIDDEN");
+  });
 });
 
 
