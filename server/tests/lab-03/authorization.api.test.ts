@@ -257,6 +257,65 @@ describe("Authorization & Scoping Tests (API-07)", () => {
     expect(resClosed.status).toBe(403);
     expect(resClosed.body.error.code).toBe("FORBIDDEN");
   });
+
+  it("API-10: Non-Administrator attempts to access Admin API returns HTTP 403 Forbidden (FR-28, AC-13)", async () => {
+    // 1. Unauthenticated access receives 401
+    const unauthRes = await request(app).get("/api/v1/admin/users");
+    expect(unauthRes.status).toBe(401);
+    expect(["UNAUTHORIZED", "UNAUTHENTICATED"]).toContain(unauthRes.body.error.code);
+
+    // 2. Requester access receives 403
+    const reqLogin = await request(app).post("/api/v1/auth/login").send({
+      email: "jennifer.anderson@kmutt.ac.th",
+      password: "Password123!",
+    });
+    const requesterCookie = reqLogin.headers["set-cookie"];
+
+    const reqGetRes = await request(app)
+      .get("/api/v1/admin/users")
+      .set("Cookie", requesterCookie);
+    expect(reqGetRes.status).toBe(403);
+    expect(reqGetRes.body.error.code).toBe("FORBIDDEN");
+
+    const reqPostRes = await request(app)
+      .post("/api/v1/admin/users")
+      .set("Cookie", requesterCookie)
+      .send({
+        displayName: "Hacker User",
+        email: "hacker@kmutt.ac.th",
+        role: "ADMINISTRATOR",
+        initialPassword: "Password123!",
+      });
+    expect(reqPostRes.status).toBe(403);
+    expect(reqPostRes.body.error.code).toBe("FORBIDDEN");
+
+    // 3. IT Staff access receives 403
+    const staffLogin = await request(app).post("/api/v1/auth/login").send({
+      email: "staff.somchai@kmutt.ac.th",
+      password: "Password123!",
+    });
+    const staffCookie = staffLogin.headers["set-cookie"];
+
+    const staffGetRes = await request(app)
+      .get("/api/v1/admin/users")
+      .set("Cookie", staffCookie);
+    expect(staffGetRes.status).toBe(403);
+    expect(staffGetRes.body.error.code).toBe("FORBIDDEN");
+
+    const staffPatchRes = await request(app)
+      .patch("/api/v1/admin/users/1")
+      .set("Cookie", staffCookie)
+      .send({ displayName: "Modified By Staff" });
+    expect(staffPatchRes.status).toBe(403);
+    expect(staffPatchRes.body.error.code).toBe("FORBIDDEN");
+
+    const staffResetRes = await request(app)
+      .post("/api/v1/admin/users/1/reset-password")
+      .set("Cookie", staffCookie)
+      .send({ initialPassword: "Password123!" });
+    expect(staffResetRes.status).toBe(403);
+    expect(staffResetRes.body.error.code).toBe("FORBIDDEN");
+  });
 });
 
 
