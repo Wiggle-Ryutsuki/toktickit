@@ -17,6 +17,6 @@
 
 ## Pull Requests I reviewed for my partner:
 
-**My comment:** 
+**My comment:** All approvals.
 
-**Partner's response:** 
+**Partner's response:** Acknowledged with thanks and moved on.
