@@ -140,3 +140,85 @@ Detailed sprint specifications and artifacts are maintained under [`docs/lab-02/
 * [`tests.md`](docs/lab-02/tests.md): Test strategy, traceability matrix, and execution commands.
 * [`reviewer.md`](docs/lab-02/reviewer.md): Peer review records and PR audit history.
 
+---
+
+## Lab 3 Implementation Summary: Users, Roles, IT Staff Operations & Administrator Management
+
+In Lab 3, TokTickIT progressed from the initial Requester MVP into a multi-role, production-ready operational platform. Real Argon2id authentication replaced developer simulation, operational IT Staff workflows (central queue, ticket ownership, IT priority, workflow status transitions, public comments, and internal notes) were delivered, and a minimalist Administrator user management interface was established—all backed by strict server-side authorization and the consistent **Zen Green UI design system**.
+
+### 1. Key Features Delivered
+
+* **Feature-9: Authentication Foundation & Mandatory Password Change**
+  * **Argon2id Password Security**: Production password hashing using Argon2id with constant-time verification against timing attacks (`POST /api/v1/auth/login`).
+  * **Session-Based Authentication**: Secure `HttpOnly` cookie-based sessions with server-side session invalidation upon logout (`POST /api/v1/auth/logout`) and session restoration via `GET /api/v1/auth/me`.
+  * **Inactive Account Protection**: Immediate rejection of deactivated accounts (`isActive: false`) with generic, safe failure messages.
+  * **Mandatory Initial Password Change**: Enforces first-login password updates (`mustChangePassword: true`) blocking entry to the app until a complex password (min 8 chars, uppercase, lowercase, number, special char) is established (`POST /api/v1/auth/change-password`).
+  * **Decommissioned Dev Simulation**: Removed the Lab 2 requester selection gate; authenticated user identity and role badge (`Requester`, `IT Staff`, `Administrator`) are rendered dynamically in the persistent Zen Green navigation header.
+
+* **Feature-10: IT Staff Ticket Queue (Shared Operational Triage)**
+  * **Shared Operational Queue**: Central triage table (`GET /api/v1/tickets`) for IT Staff and Administrators to manage tickets across the organization.
+  * **Real-Time Live Search**: Debounced querying across ticket numbers (`TKT-YYYY-NNNNN`) and summary text.
+  * **Multi-Criteria Filtering & Sorting**: Instant filtering by Category, Status, Requested Priority, IT Priority, and Assignment (`All`, `Unassigned`, `Assigned to Me`). Multi-column sorting by Ticket Date, Status, Priority, and Last Updated with server-side pagination.
+  * **Role-Based Access Control**: Requesters are strictly forbidden from accessing the IT Staff queue (`403 Forbidden`).
+
+* **Feature-11: IT Staff Ticket Operations, Comments & Notes**
+  * **Ownership Claiming & Assignment**: IT Staff and Administrators can claim unassigned tickets or reassign ownership among active staff members.
+  * **IT Priority Setting**: Independent IT Priority assignment (`Low`, `Medium`, `High`, `Urgent`), preserving the requester's original Requested Priority for SLA traceability.
+  * **Lifecycle Status Transitions**: Enforced state machine preventing illegal jumps (`New` → `In Progress` → `Pending Requester` → `Resolved` → `Closed` / `Cancelled`).
+  * **Optimistic Concurrency Control**: Ticket versioning protects against mid-air collisions (`409 Conflict`) during concurrent staff edits.
+  * **Dual-Channel Discussion Threads**:
+    * **Public Comments**: Append-only thread visible to Requesters, IT Staff, and Administrators for open communication.
+    * **Internal Notes**: Role-restricted thread rendered in a distinct amber alert style, strictly hidden from Requesters (`403 Forbidden`).
+  * **Requester Resolution Indication**: Allows requesters to mark *"Problem Appears Resolved"* to confirm fixes without directly altering formal ticket workflow status.
+  * **Full Attachment Lifecycle Continuity**: Retains all Lab 2 attachment capabilities (upload, streaming download, soft-removal with audit reason, tombstones).
+
+* **Feature-12: Minimalist Administrator User Management**
+  * **Administrator Management Console**: Dedicated management interface (`/admin/users`) guarded by role checks (`403 Forbidden` for non-administrators).
+  * **Directory Search & Role Filter**: Instant search by Name or Email and single-role filtering (`Requester`, `IT Staff`, `Administrator`).
+  * **User Provisioning Modal**: Secure drawer/modal to create accounts with email, display name, single role, activation status, and an initial password flagged for mandatory reset.
+  * **Account Lifecycle & Edits**: Edit profile information and toggle activation states (`Active` / `Inactive`).
+  * **Critical Admin Safety Protections**:
+    * Hard prevention of duplicate email registration.
+    * Strict block against self-deactivation (`SELF_DEACTIVATION_PROHIBITED`).
+    * Protection preventing deactivation or re-rolling of the system's last active Administrator (`LAST_ADMIN_PROTECTION`).
+    * Soft deactivation policy with zero hard deletion of user accounts.
+  * **Password Reset Gate**: Admin-initiated password resets automatically set `mustChangePassword = true`, forcing the user to change their password upon their next login.
+
+---
+
+### 2. Design System & UX Enhancements
+
+* **Role Badges**: Prominent, accessible Zen Green pill badges distinguish `Requester` (neutral/green), `IT Staff` (blue/teal), and `Administrator` (purple/indigo) users.
+* **Dual Discussion Visual Styling**: Public Comments feature clean green/neutral card borders, while Internal Notes feature high-contrast amber styling with padlock icons for immediate visual identification.
+* **Password Policy Checklist**: Real-time visual feedback checklist dynamically validates password length, uppercase, numbers, and special characters.
+* **Responsive Layouts**: Operational queue tables and user management lists gracefully collapse into stacked card layouts on mobile screens (<768px).
+
+---
+
+### 3. Testing & Verification Summary
+
+All Lab 3 deliverables were implemented using Test-Driven Development (TDD) and verified across four automated testing tiers:
+
+| Test Layer | Scope | Framework | Total Tests | Result |
+| :--- | :--- | :--- | :--- | :--- |
+| **Server Unit Tests** | Password complexity policy, ticket state machine, comment/note validation | Vitest | 3 | **Pass (3/3)** |
+| **Server API Integration Tests** | Argon2id auth, sessions, RBAC guards, IT queue queries, ownership, comments/notes, admin safety | Vitest + Supertest | 34 | **Pass (34/34)** |
+| **Client UI Component Tests** | Login, forced password change, shell header, staff queue, staff detail, user admin | Vitest + RTL | 10 | **Pass (10/10)** |
+| **Playwright E2E Tests** | Multi-role workflows: auth, triage, note segregation, admin lifecycle | Playwright / Chromium | 5 | **Pass (5/5)** |
+| **Total Lab 3 Automated Tests** | | | **52** | **100% Pass** |
+
+* **Full Traceability**: 100% coverage across all 14 Acceptance Criteria (`AC-01` to `AC-14`), 28 Functional Requirements (`FR-01` to `FR-28`), and 16 Business Rules (`BR-01` to `BR-16`).
+* **Visual Verification**: 34 unique screenshot deliverables generated and cataloged under `artifacts/lab-03/screenshots/`.
+
+---
+
+### 4. Lab 3 Documentation Directory
+
+Detailed sprint specifications and review records are maintained under [`docs/lab-03/`](docs/lab-03/):
+* [`specification.md`](docs/lab-03/specification.md): Comprehensive sprint requirements, domain model, business rules, and acceptance criteria.
+* [`api-spec.md`](docs/lab-03/api-spec.md): REST API contracts, auth endpoints, queue query params, and error schemas.
+* [`ui-spec.md`](docs/lab-03/ui-spec.md): UI screen definitions, responsive behaviors, and screenshot deliverable inventory.
+* [`tests.md`](docs/lab-03/tests.md): Test plan, traceability matrix, and automation commands.
+* [`reviewer.md`](docs/lab-03/reviewer.md): Specification review logs and contract compliance audits.
+* [`ai_use.md`](docs/lab-03/ai_use.md): AI tool attribution, prompt logs, and development reflections.
+

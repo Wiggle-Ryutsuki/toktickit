@@ -21,3 +21,6 @@ server/uploads/
 # test output
 test-results/
 playwright-report/
+scripts/
+*playwright.config.ts
+

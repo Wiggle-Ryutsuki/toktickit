@@ -356,3 +356,123 @@ export async function postNoteApi(id: number, content: string): Promise<TicketCo
   return data;
 }
 
+export interface AdminUserDto {
+  id: number;
+  displayName: string;
+  email: string;
+  role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+  isActive: boolean;
+  mustChangePassword: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAdminUserPayload {
+  displayName: string;
+  email: string;
+  role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+  isActive?: boolean;
+  initialPassword: string;
+}
+
+export interface UpdateAdminUserPayload {
+  displayName?: string;
+  email?: string;
+  role?: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+  isActive?: boolean;
+}
+
+export async function getAdminUsersApi(params?: {
+  search?: string;
+  role?: string;
+}): Promise<AdminUserDto[]> {
+  const q = new URLSearchParams();
+  if (params?.search && params.search.trim()) q.set("search", params.search.trim());
+  if (params?.role && params.role !== "ALL") q.set("role", params.role);
+
+  const res = await fetch(`${API_URL}/api/v1/admin/users?${q.toString()}`, {
+    method: "GET",
+    credentials: "include",
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    throw error;
+  }
+  return data;
+}
+
+export async function createAdminUserApi(payload: CreateAdminUserPayload): Promise<AdminUserDto> {
+  const res = await fetch(`${API_URL}/api/v1/admin/users`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    throw error;
+  }
+  return data;
+}
+
+export async function getAdminUserByIdApi(id: number): Promise<AdminUserDto> {
+  const res = await fetch(`${API_URL}/api/v1/admin/users/${id}`, {
+    method: "GET",
+    credentials: "include",
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    throw error;
+  }
+  return data;
+}
+
+export async function updateAdminUserApi(
+  id: number,
+  payload: UpdateAdminUserPayload
+): Promise<AdminUserDto> {
+  const res = await fetch(`${API_URL}/api/v1/admin/users/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    throw error;
+  }
+  return data;
+}
+
+export async function resetUserPasswordApi(
+  id: number,
+  payload: { initialPassword: string }
+): Promise<{ message: string; userId: number; mustChangePassword: boolean }> {
+  const res = await fetch(`${API_URL}/api/v1/admin/users/${id}/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    throw error;
+  }
+  return data;
+}
+
