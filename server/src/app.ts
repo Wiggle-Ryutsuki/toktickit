@@ -5,12 +5,44 @@ import { getPrisma } from "./prisma.js";
 // need the DB (Issue 4). It is intentionally unused until then.
 void getPrisma;
 
+import cookieParser from "cookie-parser";
+import {
+  authenticateSession,
+  requirePasswordChangeClear,
+  requireAuth,
+  requireRole,
+} from "./middleware/auth.js";
+import { login, logout, getCurrentUser, changePassword } from "./controllers/auth.controller.js";
+
 // The Express app is exported separately from app.listen() (see index.ts) so
 // Supertest can import `app` without opening a port. Do not merge these files.
 export const app = express();
 
-app.use(cors());          // already wired: lets the Vite dev server call this API
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
+    credentials: true,
+  })
+);
+app.use(cookieParser());
 app.use(express.json());
+app.use(authenticateSession);
+app.use(requirePasswordChangeClear);
+
+// ---------------------------------------------------------------------------
+// Feature 9 — Authentication & Password Change Endpoints
+// ---------------------------------------------------------------------------
+app.post("/api/v1/auth/login", login);
+app.post("/api/auth/login", login);
+
+app.post("/api/v1/auth/logout", logout);
+app.post("/api/auth/logout", logout);
+
+app.get("/api/v1/auth/me", getCurrentUser);
+app.get("/api/auth/me", getCurrentUser);
+
+app.post("/api/v1/auth/change-password", changePassword);
+app.post("/api/auth/change-password", changePassword);
 
 // Standard Error Helper
 function sendError(res: Response, status: number, code: string, message: string, fieldErrors: { field: string; message: string }[] = []) {
@@ -155,12 +187,36 @@ app.post("/api/v1/tickets", handleTicketUpload, createTicket);
 // Feature 7 — My Tickets List, Search, Filters, Sorting & Pagination
 // ---------------------------------------------------------------------------
 app.get("/api/tickets", listTickets);
-app.get("/api/v1/tickets", listTickets);
 
 // ---------------------------------------------------------------------------
-// Feature 8 — Ticket Detail (View Mode) & Attachment Lifecycle
+// Feature 10 — IT Staff Ticket Queue (GET /api/v1/tickets & /api/v1/staff/tickets)
 // ---------------------------------------------------------------------------
-import { getTicketDetail } from "./controllers/ticket-detail.controller.js";
+import { getStaffQueue } from "./controllers/staff-queue.controller.js";
+
+app.get("/api/v1/tickets", (req, res, next) => {
+  if (req.query.requesterId) {
+    return listTickets(req, res);
+  }
+  return requireRole("IT_STAFF", "ADMINISTRATOR")(req, res, () => getStaffQueue(req, res));
+});
+app.get("/api/v1/staff/tickets", requireRole("IT_STAFF", "ADMINISTRATOR"), getStaffQueue);
+app.get("/api/staff/tickets", requireRole("IT_STAFF", "ADMINISTRATOR"), getStaffQueue);
+
+// ---------------------------------------------------------------------------
+// Feature 8 & 11 — Ticket Detail, Operations, Comments & Notes
+// ---------------------------------------------------------------------------
+import {
+  getTicketDetail,
+  updateTicketOperational,
+  indicateResolution,
+} from "./controllers/ticket-detail.controller.js";
+import {
+  getComments,
+  postComment,
+  getNotes,
+  postNote,
+} from "./controllers/comments-notes.controller.js";
+import { getStaffAssignees } from "./controllers/staff-assignees.controller.js";
 import {
   uploadAttachment,
   downloadAttachment,
@@ -213,9 +269,33 @@ const handleSingleAttachmentUpload = (req: Request, res: Response, next: express
   });
 };
 
-// Ticket Detail
+// Staff Assignees List
+app.get("/api/users/staff", getStaffAssignees);
+app.get("/api/v1/users/staff", getStaffAssignees);
+app.get("/api/staff", getStaffAssignees);
+app.get("/api/v1/staff", getStaffAssignees);
+
+// Ticket Detail & Operational Updates
 app.get("/api/tickets/:id", getTicketDetail);
 app.get("/api/v1/tickets/:id", getTicketDetail);
+app.patch("/api/tickets/:id", updateTicketOperational);
+app.patch("/api/v1/tickets/:id", updateTicketOperational);
+
+// Requester Resolution Indication
+app.post("/api/tickets/:id/resolve-indication", indicateResolution);
+app.post("/api/v1/tickets/:id/resolve-indication", indicateResolution);
+
+// Public Comments
+app.get("/api/tickets/:id/comments", getComments);
+app.get("/api/v1/tickets/:id/comments", getComments);
+app.post("/api/tickets/:id/comments", postComment);
+app.post("/api/v1/tickets/:id/comments", postComment);
+
+// Internal Notes
+app.get("/api/tickets/:id/notes", getNotes);
+app.get("/api/v1/tickets/:id/notes", getNotes);
+app.post("/api/tickets/:id/notes", postNote);
+app.post("/api/v1/tickets/:id/notes", postNote);
 
 // Attachment Upload
 app.post("/api/tickets/:id/attachments", handleSingleAttachmentUpload, uploadAttachment);
@@ -232,6 +312,34 @@ app.delete("/api/tickets/:id/attachments/:attachmentId", softRemoveAttachment);
 app.delete("/api/v1/tickets/:id/attachments/:attachmentId", softRemoveAttachment);
 app.delete("/api/attachments/:id", softRemoveAttachment);
 app.delete("/api/v1/attachments/:id", softRemoveAttachment);
+
+// ---------------------------------------------------------------------------
+// Feature 12 — Administrator User Management
+// ---------------------------------------------------------------------------
+import {
+  getAdminUsers,
+  createAdminUser,
+  getAdminUserById,
+  updateAdminUser,
+  resetUserPassword,
+} from "./controllers/admin-users.controller.js";
+
+const requireAdmin = [requireAuth, requireRole("ADMINISTRATOR")];
+
+app.get("/api/admin/users", ...requireAdmin, getAdminUsers);
+app.get("/api/v1/admin/users", ...requireAdmin, getAdminUsers);
+
+app.post("/api/admin/users", ...requireAdmin, createAdminUser);
+app.post("/api/v1/admin/users", ...requireAdmin, createAdminUser);
+
+app.get("/api/admin/users/:id", ...requireAdmin, getAdminUserById);
+app.get("/api/v1/admin/users/:id", ...requireAdmin, getAdminUserById);
+
+app.patch("/api/admin/users/:id", ...requireAdmin, updateAdminUser);
+app.patch("/api/v1/admin/users/:id", ...requireAdmin, updateAdminUser);
+
+app.post("/api/admin/users/:id/reset-password", ...requireAdmin, resetUserPassword);
+app.post("/api/v1/admin/users/:id/reset-password", ...requireAdmin, resetUserPassword);
 
 export default app;
 

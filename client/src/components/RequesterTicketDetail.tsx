@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import { useRequester } from "../context/RequesterContext.js";
+import { AuthContext } from "../context/AuthContext.js";
 import AttachmentSection, { AttachmentDto } from "./AttachmentSection.js";
 
 export interface RequesterTicketDetailProps {
@@ -17,6 +18,8 @@ export interface TicketDetailDto {
   itPriority: string;
   ticketOwner: string | null;
   resolutionSummary: string | null;
+  requesterResolutionConfirmedAt: string | null;
+  comments?: any[];
   requester: {
     id: number;
     displayName: string;
@@ -38,7 +41,8 @@ export interface TicketDetailDto {
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-function formatDate(isoString: string): string {
+function formatDate(isoString: string | null | undefined): string {
+  if (!isoString) return "—";
   try {
     const d = new Date(isoString);
     return d.toLocaleString("en-US", {
@@ -77,6 +81,7 @@ function getStatusBadgeClass(status: string): string {
 function getPriorityBadgeClass(priority: string): string {
   switch (priority) {
     case "URGENT":
+    case "CRITICAL":
       return "badge-priority-urgent";
     case "HIGH":
       return "badge-priority-high";
@@ -91,11 +96,23 @@ function getPriorityBadgeClass(priority: string): string {
 
 export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTicketDetailProps) {
   const { selectedRequester } = useRequester();
+  const auth = useContext(AuthContext);
+  const isStaffOrAdmin = auth?.user?.role === "IT_STAFF" || auth?.user?.role === "ADMINISTRATOR";
 
   const [ticket, setTicket] = useState<TicketDetailDto | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Requester resolution indication state
+  const [indicatingResolution, setIndicatingResolution] = useState<boolean>(false);
+  const [resolveSuccessMessage, setResolveSuccessMessage] = useState<string | null>(null);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+
+  // Public comments state
+  const [newComment, setNewComment] = useState<string>("");
+  const [commentSubmitting, setCommentSubmitting] = useState<boolean>(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
 
   const fetchTicket = useCallback(async () => {
     setLoading(true);
@@ -104,6 +121,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
 
     try {
       const res = await fetch(`${API_URL}/api/tickets/${ticketId}`, {
+        credentials: "include",
         headers: {
           "X-Requester-Id": selectedRequester ? String(selectedRequester.id) : "1",
         },
@@ -124,7 +142,70 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
     } finally {
       setLoading(false);
     }
-  }, [ticketId, selectedRequester]);
+  }, [ticketId, selectedRequester?.id]);
+
+  const handleIndicateResolved = async () => {
+    if (!ticket) return;
+    setIndicatingResolution(true);
+    setResolveError(null);
+    setResolveSuccessMessage(null);
+
+    try {
+      const res = await fetch(`${API_URL}/api/v1/tickets/${ticket.id}/resolve-indication`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error?.message || "Failed to submit resolution indication.");
+      }
+      setTicket((prev) => (prev ? { ...prev, requesterResolutionConfirmedAt: data.requesterResolutionConfirmedAt } : prev));
+      setResolveSuccessMessage("Thank you! Your indication that the problem appears resolved has been recorded for IT Staff.");
+    } catch (err: any) {
+      setResolveError(err.message || "Failed to submit resolution indication.");
+    } finally {
+      setIndicatingResolution(false);
+    }
+  };
+
+  const handlePostComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticket) return;
+    const trimmed = newComment.trim();
+    if (!trimmed) {
+      setCommentError("Comment content cannot be empty or whitespace-only.");
+      return;
+    }
+    if (trimmed.length > 2000) {
+      setCommentError("Comment content cannot exceed 2000 characters.");
+      return;
+    }
+
+    setCommentSubmitting(true);
+    setCommentError(null);
+    try {
+      const res = await fetch(`${API_URL}/api/v1/tickets/${ticket.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ content: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error?.message || "Failed to post comment.");
+      }
+      setNewComment("");
+      setTicket((prev) => {
+        if (!prev) return prev;
+        const current = prev.comments || [];
+        return { ...prev, comments: [...current, data] };
+      });
+    } catch (err: any) {
+      setCommentError(err.message || "Failed to post comment.");
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     fetchTicket();
@@ -140,7 +221,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
             className="btn btn-zen-secondary btn-sm"
             onClick={onBack}
           >
-            &larr; Back to My Tickets
+            &larr; {isStaffOrAdmin ? "Back to Ticket Queue" : "Back to My Tickets"}
           </button>
         </div>
         <div className="card border-0 shadow-sm p-5 text-center bg-white">
@@ -163,7 +244,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
             className="btn btn-zen-secondary btn-sm"
             onClick={onBack}
           >
-            &larr; Back to My Tickets
+            &larr; {isStaffOrAdmin ? "Back to Ticket Queue" : "Back to My Tickets"}
           </button>
         </div>
         <div className="alert alert-danger shadow-sm p-4 text-center bg-white border border-danger-subtle rounded-3">
@@ -175,7 +256,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
             This ticket belongs to another requester and cannot be accessed.
           </p>
           <button type="button" className="btn btn-zen-primary" onClick={onBack}>
-            Back to My Tickets
+            {isStaffOrAdmin ? "Back to Ticket Queue" : "Back to My Tickets"}
           </button>
         </div>
       </div>
@@ -192,7 +273,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
             className="btn btn-zen-secondary btn-sm"
             onClick={onBack}
           >
-            &larr; Back to My Tickets
+            &larr; {isStaffOrAdmin ? "Back to Ticket Queue" : "Back to My Tickets"}
           </button>
         </div>
         <div className="alert alert-warning shadow-sm p-4 text-center bg-white border border-warning-subtle rounded-3">
@@ -202,7 +283,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
             {errorMessage || "Ticket not found."}
           </p>
           <button type="button" className="btn btn-zen-primary" onClick={onBack}>
-            Back to My Tickets
+            {isStaffOrAdmin ? "Back to Ticket Queue" : "Back to My Tickets"}
           </button>
         </div>
       </div>
@@ -223,7 +304,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
                 className="btn btn-link p-0 text-decoration-none text-muted small"
                 onClick={onBack}
               >
-                My Tickets
+                {isStaffOrAdmin ? "Ticket Queue" : "My Tickets"}
               </button>
             </li>
             <li className="breadcrumb-item active small" aria-current="page">
@@ -236,13 +317,64 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
           className="btn btn-zen-secondary btn-sm"
           onClick={onBack}
         >
-          &larr; Back to My Tickets
+          &larr; {isStaffOrAdmin ? "Back to Ticket Queue" : "Back to My Tickets"}
         </button>
       </div>
 
       {/* Ticket Header Card */}
       <div className="card border-0 shadow-sm mb-4">
         <div className="card-body p-4">
+          {/* Requester Resolution Confirmation Banner / Action */}
+          {ticket.requesterResolutionConfirmedAt ? (
+            <div className="zen-resolved-indication-banner mb-3" data-testid="requester-resolved-indication">
+              <span className="fs-5">✓</span>
+              <div>
+                <strong>Problem Appears Resolved:</strong> You confirmed that this problem appears resolved on{" "}
+                {formatDate(ticket.requesterResolutionConfirmedAt)}.
+              </div>
+            </div>
+          ) : ticket.status !== "RESOLVED" && ticket.status !== "CLOSED" ? (
+            <div className="alert alert-light border d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 py-2 px-3">
+              <div className="small text-muted">
+                <span className="me-2">💡</span>
+                Has your problem been solved? Let IT Staff know that you are satisfied:
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline-success btn-sm fw-semibold"
+                onClick={handleIndicateResolved}
+                disabled={indicatingResolution}
+                data-testid="problem-appears-resolved-btn"
+              >
+                {indicatingResolution ? "Submitting..." : "✓ Problem Appears Resolved"}
+              </button>
+            </div>
+          ) : null}
+
+          {resolveSuccessMessage && (
+            <div className="alert alert-success alert-dismissible fade show mb-3 small" role="alert">
+              <span>{resolveSuccessMessage}</span>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={() => setResolveSuccessMessage(null)}
+                aria-label="Close"
+              ></button>
+            </div>
+          )}
+
+          {resolveError && (
+            <div className="alert alert-danger alert-dismissible fade show mb-3 small" role="alert">
+              <span>{resolveError}</span>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={() => setResolveError(null)}
+                aria-label="Close"
+              ></button>
+            </div>
+          )}
+
           <div className="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
             <div>
               <div className="d-flex align-items-center gap-2 mb-2">
@@ -341,24 +473,83 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
         isClosed={ticket.status === "CLOSED"}
       />
 
-      {/* Lab 3 Inert Placeholder: Public Comments, Notes & Activity Log */}
-      <div className="card border-0 shadow-sm opacity-75 mb-4" style={{ pointerEvents: "none" }}>
-        <div className="card-header bg-white border-bottom py-2 d-flex justify-content-between align-items-center">
-          <ul className="nav nav-tabs card-header-tabs">
-            <li className="nav-item">
-              <span className="nav-link active fw-semibold small">Public Comments</span>
-            </li>
-            <li className="nav-item">
-              <span className="nav-link text-muted small">Internal Notes</span>
-            </li>
-            <li className="nav-item">
-              <span className="nav-link text-muted small">Activity Log</span>
-            </li>
-          </ul>
-          <span className="badge bg-secondary-subtle text-secondary small">Available in Lab 3</span>
+      {/* Public Comments Communication Thread */}
+      <div className="card border-0 shadow-sm mb-4" data-testid="requester-comments-card">
+        <div className="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+          <h5 className="fw-bold mb-0 text-dark small text-uppercase">
+            💬 Public Comments ({(ticket.comments || []).length})
+          </h5>
+          <span className="text-muted small">Communicate directly with IT Staff handling your ticket</span>
         </div>
-        <div className="card-body p-4 text-center text-muted small bg-light">
-          Ticket communication threads, IT internal notes, and event audit logging will become active in Lab 3.
+
+        <div className="card-body p-4">
+          {(!ticket.comments || ticket.comments.length === 0) ? (
+            <div className="text-center py-4 text-muted bg-light rounded border mb-4 small">
+              No public comments posted yet. Add a comment below if you have additional information.
+            </div>
+          ) : (
+            <div className="comments-list mb-4">
+              {ticket.comments.map((c: any) => (
+                <div key={c.id} className="zen-comment-item" data-testid="public-comment-item">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <div className="d-flex align-items-center gap-2">
+                      <span className="fw-semibold text-dark small">{c.author?.displayName}</span>
+                      <span
+                        className={`badge ${
+                          c.author?.role === "IT_STAFF"
+                            ? "badge-role-staff"
+                            : c.author?.role === "ADMINISTRATOR"
+                            ? "badge-role-admin"
+                            : "badge-role-requester"
+                        }`}
+                      >
+                        {c.author?.role === "IT_STAFF"
+                          ? "IT Staff"
+                          : c.author?.role === "ADMINISTRATOR"
+                          ? "Admin"
+                          : "Requester"}
+                      </span>
+                    </div>
+                    <span className="text-muted small">{formatDate(c.createdAt)}</span>
+                  </div>
+                  <div className="text-dark small" style={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+                    {c.content}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add Public Comment Form */}
+          <form onSubmit={handlePostComment} className="border-top pt-3">
+            <label htmlFor="requester-comment-input" className="form-label fw-semibold small text-dark">
+              Add Public Comment
+            </label>
+            <textarea
+              id="requester-comment-input"
+              className={`form-control ${commentError ? "is-invalid" : ""}`}
+              rows={3}
+              placeholder="Type your message to IT Staff... (1-2000 characters)"
+              value={newComment}
+              onChange={(e) => {
+                setNewComment(e.target.value);
+                if (commentError) setCommentError(null);
+              }}
+              disabled={commentSubmitting}
+              maxLength={2000}
+            />
+            <div className="d-flex justify-content-between align-items-center mt-2">
+              <span className="text-muted small">{newComment.length} / 2000 characters</span>
+              <button
+                type="submit"
+                className="btn btn-zen-primary btn-sm"
+                disabled={commentSubmitting || !newComment.trim()}
+              >
+                {commentSubmitting ? "Posting..." : "Post Public Comment"}
+              </button>
+            </div>
+            {commentError && <div className="zen-field-error mt-2">{commentError}</div>}
+          </form>
         </div>
       </div>
     </div>

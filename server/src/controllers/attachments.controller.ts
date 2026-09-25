@@ -9,6 +9,9 @@ function getCorrelationId(): string {
 }
 
 function parseRequesterId(req: Request): number | null {
+  if (req.user) {
+    return req.user.id;
+  }
   const header = req.headers["x-requester-id"] as string | undefined;
   const query = req.query.requesterId as string | undefined;
   const body = req.body?.uploadedById ?? req.body?.deletedById;
@@ -73,7 +76,8 @@ export async function uploadAttachment(req: Request, res: Response): Promise<Res
       });
     }
 
-    if (ticket.requesterId !== requesterId) {
+    const isStaffOrAdmin = req.user?.role === "IT_STAFF" || req.user?.role === "ADMINISTRATOR";
+    if (!isStaffOrAdmin && ticket.requesterId !== requesterId) {
       if (req.file && fs.existsSync(req.file.path)) {
         try { fs.unlinkSync(req.file.path); } catch { /* ignore */ }
       }
@@ -260,7 +264,8 @@ export async function downloadAttachment(req: Request, res: Response): Promise<v
     }
 
     // Ownership check
-    if (attachment.ticket.requesterId !== requesterId) {
+    const isStaffOrAdmin = req.user?.role === "IT_STAFF" || req.user?.role === "ADMINISTRATOR";
+    if (!isStaffOrAdmin && attachment.ticket.requesterId !== requesterId) {
       res.status(403).json({
         error: {
           code: "FORBIDDEN",
@@ -377,7 +382,8 @@ export async function softRemoveAttachment(req: Request, res: Response): Promise
     }
 
     // Ownership check
-    if (attachment.ticket.requesterId !== requesterId) {
+    const isStaffOrAdmin = req.user?.role === "IT_STAFF" || req.user?.role === "ADMINISTRATOR";
+    if (!isStaffOrAdmin && attachment.ticket.requesterId !== requesterId) {
       return res.status(403).json({
         error: {
           code: "FORBIDDEN",

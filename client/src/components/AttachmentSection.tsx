@@ -133,6 +133,7 @@ export default function AttachmentSection({
 
       const res = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "X-Requester-Id": selectedRequester ? String(selectedRequester.id) : "1",
         },
@@ -160,6 +161,7 @@ export default function AttachmentSection({
     setDownloadError(null);
     try {
       const res = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments/${att.id}`, {
+        credentials: "include",
         headers: {
           "X-Requester-Id": selectedRequester ? String(selectedRequester.id) : "1",
         },
@@ -206,6 +208,7 @@ export default function AttachmentSection({
         `${API_URL}/api/tickets/${ticketId}/attachments/${selectedAttachment.id}`,
         {
           method: "DELETE",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
             "X-Requester-Id": selectedRequester ? String(selectedRequester.id) : "1",

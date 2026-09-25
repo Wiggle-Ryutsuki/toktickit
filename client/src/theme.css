@@ -16,6 +16,7 @@
   --color-warning-bg: #fef3c7;
   --color-success: #15803d;
   --color-success-bg: #dcfce7;
+  --zen-header-height: 58px;
 }
 
 body {
@@ -44,6 +45,7 @@ body {
   color: #ffffff;
   padding: 0.75rem 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  z-index: 1030;
 }
 
 .zen-header .navbar-brand {
@@ -336,63 +338,84 @@ body {
   border-bottom: none;
 }
 
-/* Badges - Status */
+/* Badges - Status (WCAG 2.2 AA Compliant) */
 .badge-status-new {
   background-color: #e0f2fe;
   color: #0369a1;
   border: 1px solid #bae6fd;
 }
 
-.badge-status-assigned,
+.badge-status-assigned {
+  background-color: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+}
+
 .badge-status-in-progress {
+  background-color: #eaf6ef;
+  color: #0f5132;
+  border: 1px solid #c6ebd4;
+}
+
+.badge-status-pending-requester {
   background-color: #fef3c7;
   color: #b45309;
   border: 1px solid #fde68a;
 }
 
-.badge-status-pending-requester {
-  background-color: #f3e8ff;
-  color: #7e22ce;
-  border: 1px solid #e9d5ff;
-}
-
-.badge-status-resolved,
-.badge-status-closed {
+.badge-status-resolved {
   background-color: #dcfce7;
   color: #15803d;
   border: 1px solid #bbf7d0;
 }
 
-.badge-status-cancelled {
-  background-color: #f3f4f6;
-  color: #4b5563;
-  border: 1px solid #e5e7eb;
+.badge-status-closed {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 
-/* Badges - Priority */
+.badge-status-cancelled {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* Badges - Priority (WCAG 2.2 AA Compliant) */
 .badge-priority-urgent {
-  background-color: #fdf2f2;
-  color: #b3261e;
+  background-color: #fee2e2;
+  color: #b91c1c;
   border: 1px solid #fecaca;
   font-weight: 600;
 }
 
 .badge-priority-high {
-  background-color: #fff7ed;
+  background-color: #ffedd5;
   color: #c2410c;
   border: 1px solid #fed7aa;
 }
 
 .badge-priority-medium {
-  background-color: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fde68a;
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
 }
 
 .badge-priority-low {
-  background-color: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+/* Sticky column for tablet view */
+@media (min-width: 768px) and (max-width: 991px) {
+  .zen-table-sticky-col {
+    position: sticky;
+    left: 0;
+    background-color: var(--color-surface);
+    z-index: 2;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+  }
 }
 
 /* Mobile Stacked Card Layout */
@@ -411,8 +434,15 @@ body {
 
 /* Skeleton Loading Animation */
 @keyframes zen-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .zen-skeleton-bar {
@@ -438,3 +468,183 @@ body {
   color: var(--color-secondary-green);
 }
 
+/* -------------------------------------------------------------------------
+   Feature 11: IT Staff Operations, Comments, Notes, & Segregation
+   ------------------------------------------------------------------------- */
+
+/* Comments & Notes Tabs */
+.zen-detail-tabs {
+  border-bottom: 2px solid var(--color-border-subtle);
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.zen-detail-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: -2px;
+}
+
+.zen-detail-tab-btn:hover {
+  color: var(--color-primary-green);
+  background-color: rgba(0, 107, 60, 0.04);
+}
+
+.zen-detail-tab-btn.active {
+  color: var(--color-primary-green);
+  border-bottom-color: var(--color-primary-green);
+  font-weight: 600;
+  background-color: transparent;
+}
+
+.zen-detail-tab-btn.tab-notes.active {
+  color: #b45309;
+  border-bottom-color: #b45309;
+}
+
+/* Public Comment Thread Items */
+.zen-comment-item {
+  background-color: #ffffff;
+  border: 1px solid var(--color-border-subtle);
+  border-left: 3px solid var(--color-primary-green);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+/* Confidential Internal Note Items */
+.zen-note-item {
+  background-color: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 4px solid #f59e0b;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(180, 83, 9, 0.05);
+}
+
+/* Confidentiality Warning Banner */
+.zen-confidential-banner {
+  background-color: #fef3c7;
+  border: 1px solid #fde68a;
+  border-left: 4px solid #d97706;
+  color: #92400e;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Requester Resolution Indication Banner */
+.zen-resolved-indication-banner {
+  background-color: #dcfce7;
+  border: 1px solid #bbf7d0;
+  border-left: 4px solid #16a34a;
+  color: #15803d;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Operational Sidebar Sticky Card */
+.zen-operational-card {
+  background-color: #ffffff;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+@media (min-width: 992px) {
+  .zen-operational-card.sticky-top {
+    position: sticky;
+    top: calc(var(--zen-header-height, 58px) + 10px);
+    z-index: 1010;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .zen-operational-card.sticky-top {
+    position: static !important;
+  }
+}
+
+/* Quick Claim Button */
+.btn-claim-ticket {
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.btn-claim-ticket:hover:not(:disabled) {
+  background-color: #d1fae5;
+  border-color: #6ee7b7;
+  color: #047857;
+}
+
+/* Role Badges in Comments */
+.badge-role-requester {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-role-staff {
+  background-color: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-role-admin {
+  background-color: #fae8ff;
+  color: #86198f;
+  border: 1px solid #f5d0fe;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* User Status Badges */
+.badge-status-active {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-status-inactive {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
