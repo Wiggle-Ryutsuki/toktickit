@@ -204,6 +204,13 @@ export async function postComment(req: Request, res: Response): Promise<Response
         authorId: true,
         content: true,
         createdAt: true,
+        author: {
+          select: {
+            id: true,
+            displayName: true,
+            role: true,
+          },
+        },
       },
     });
 
@@ -211,6 +218,7 @@ export async function postComment(req: Request, res: Response): Promise<Response
       id: newComment.id,
       ticketId: newComment.ticketId,
       authorId: newComment.authorId,
+      author: newComment.author,
       content: newComment.content,
       createdAt: newComment.createdAt.toISOString(),
     });
@@ -397,6 +405,13 @@ export async function postNote(req: Request, res: Response): Promise<Response> {
         authorId: true,
         content: true,
         createdAt: true,
+        author: {
+          select: {
+            id: true,
+            displayName: true,
+            role: true,
+          },
+        },
       },
     });
 
@@ -404,6 +419,7 @@ export async function postNote(req: Request, res: Response): Promise<Response> {
       id: newNote.id,
       ticketId: newNote.ticketId,
       authorId: newNote.authorId,
+      author: newNote.author,
       content: newNote.content,
       createdAt: newNote.createdAt.toISOString(),
     });
