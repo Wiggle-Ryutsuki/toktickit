@@ -710,7 +710,7 @@ export default function StaffTicketDetail({ ticketId, onBack }: StaffTicketDetai
                             <div className="d-flex align-items-center gap-2">
                               <span className="fw-semibold text-dark small">{n.author?.displayName}</span>
                               <span className={`badge ${getRoleBadgeClass(n.author?.role)}`}>
-                                {n.author?.role === "IT_STAFF" ? "IT Staff" : "Admin"}
+                                {n.author?.role === "ADMINISTRATOR" ? "Admin" : "IT Staff"}
                               </span>
                               <span className="badge bg-warning text-dark small">🔒 Internal</span>
                             </div>

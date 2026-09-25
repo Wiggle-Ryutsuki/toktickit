@@ -11,9 +11,9 @@
 | https://github.com/Wiggle-Ryutsuki/toktickit/pull/30 | feature/11-staff-ticket-detail | Good job, I’m very proud of you. |
 | https://github.com/Wiggle-Ryutsuki/toktickit/pull/31 | feature/12-user-management | Everything looks ready to go. |
 
-**Reviewer comment I received:**   All approvals
+**Reviewer comment I received:**   All approvals. There was a bug caught during the final merge to main where the internal note from the ITStaff displayed as Admin until refreshed. 
  
-**How I responded:** Acknowledged with thanks and moved on.
+**How I responded:** Acknowledged with thanks, fixed issues, and moved on.
 
 ## Pull Requests I reviewed for my partner:
 
