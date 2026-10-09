@@ -18,6 +18,8 @@ server/prisma/*.db
 *ai-prompts.md
 docs/features/
 server/uploads/
+*Lab_3_sheet.pdf
+*Labsheet_4.pdf
 # test output
 test-results/
 playwright-report/
