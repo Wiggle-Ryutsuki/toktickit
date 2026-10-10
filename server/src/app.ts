@@ -314,6 +314,27 @@ app.delete("/api/attachments/:id", softRemoveAttachment);
 app.delete("/api/v1/attachments/:id", softRemoveAttachment);
 
 // ---------------------------------------------------------------------------
+// Feature 13 — Actions Taken Foundation & Domain Model
+// ---------------------------------------------------------------------------
+import {
+  getActions,
+  createAction,
+  updateAction,
+  rejectDeleteAction,
+} from "./controllers/actions-taken.controller.js";
+
+app.get("/api/tickets/:id/actions", getActions);
+app.get("/api/v1/tickets/:id/actions", getActions);
+app.post("/api/tickets/:id/actions", createAction);
+app.post("/api/v1/tickets/:id/actions", createAction);
+
+app.patch("/api/tickets/:id/actions/:actionId", updateAction);
+app.patch("/api/v1/tickets/:id/actions/:actionId", updateAction);
+
+app.delete("/api/tickets/:id/actions/:actionId", rejectDeleteAction);
+app.delete("/api/v1/tickets/:id/actions/:actionId", rejectDeleteAction);
+
+// ---------------------------------------------------------------------------
 // Feature 12 — Administrator User Management
 // ---------------------------------------------------------------------------
 import {
