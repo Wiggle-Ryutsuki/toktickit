@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useContext } from "react";
 import { useRequester } from "../context/RequesterContext.js";
 import { AuthContext } from "../context/AuthContext.js";
 import AttachmentSection, { AttachmentDto } from "./AttachmentSection.js";
+import ActionsTaken from "./ActionsTaken.js";
 
 export interface RequesterTicketDetailProps {
   ticketId: number;
@@ -464,6 +465,9 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
           </div>
         </div>
       </div>
+
+      {/* Feature-14: Actions Taken Section (Read-Only for Requesters) */}
+      <ActionsTaken ticketId={ticket.id} isReadOnly={true} />
 
       {/* Attachments Section */}
       <AttachmentSection

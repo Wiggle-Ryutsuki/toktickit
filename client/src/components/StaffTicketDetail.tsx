@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useContext } from "react";
 import { AuthContext } from "../context/AuthContext.js";
 import AttachmentSection from "./AttachmentSection.js";
+import ActionsTaken from "./ActionsTaken.js";
 import {
   getTicketDetailApi,
   getStaffAssigneesApi,
@@ -572,6 +573,9 @@ export default function StaffTicketDetail({ ticketId, onBack }: StaffTicketDetai
               )}
             </div>
           </div>
+
+          {/* Feature-14: Actions Taken Section */}
+          <ActionsTaken ticketId={ticket.id} />
 
           {/* Segregated Communication & Attachment Tabs */}
           <div className="card border-0 shadow-sm mb-4">
