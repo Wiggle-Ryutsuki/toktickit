@@ -70,6 +70,8 @@ model User {
   attachments      Attachment[]    @relation("UploadedAttachments")
   comments         TicketComment[]
   sessions         Session[]
+  actionsPerformed ActionTaken[]   @relation("ActionsPerformed")
+  actionsAssigned  ActionTaken[]   @relation("ActionsAssigned")
 
   @@map("users")
 }
@@ -138,6 +140,7 @@ model Ticket {
   relatedSystem                  RelatedSystem   @relation(fields: [relatedSystemId], references: [id])
   attachments                    Attachment[]
   comments                       TicketComment[]
+  actions                        ActionTaken[]
 
   @@index([requesterId])
   @@index([ownerId])
@@ -190,5 +193,43 @@ model TicketSequence {
   lastValue Int @default(0)
 
   @@map("ticket_sequences")
+}
+
+// ---------------------------------------------------------------------------
+// Feature 13 — Actions Taken Foundation & Domain Model
+// ---------------------------------------------------------------------------
+enum ActionStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model ActionTaken {
+  id                 Int          @id @default(autoincrement())
+  ticketId           Int
+  actionDateTime     DateTime     @default(now())
+  description        String
+  result             String?
+  status             ActionStatus @default(PLANNED)
+  performedById      Int
+  assigneeId         Int?
+  isFollowUpRequired Boolean      @default(false)
+  followUpNote       String?
+  attachmentNotes    String?
+  version            Int          @default(1)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  ticket             Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  performedBy        User         @relation("ActionsPerformed", fields: [performedById], references: [id])
+  assignee           User?        @relation("ActionsAssigned", fields: [assigneeId], references: [id])
+
+  @@index([ticketId])
+  @@index([performedById])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([actionDateTime])
+  @@map("actions_taken")
 }
 
