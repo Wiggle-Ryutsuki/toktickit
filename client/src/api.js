@@ -292,3 +292,54 @@ export async function resetUserPasswordApi(id, payload) {
     }
     return data;
 }
+export async function getTicketActionsApi(ticketId) {
+    const res = await fetch(`${API_URL}/api/v1/tickets/${ticketId}/actions`, {
+        method: "GET",
+        credentials: "include",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        error.correlationId = data?.error?.correlationId;
+        throw error;
+    }
+    return data;
+}
+export async function createTicketActionApi(ticketId, payload) {
+    const res = await fetch(`${API_URL}/api/v1/tickets/${ticketId}/actions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        error.fieldErrors = data?.error?.fieldErrors;
+        error.correlationId = data?.error?.correlationId;
+        throw error;
+    }
+    return data;
+}
+export async function updateTicketActionApi(ticketId, actionId, payload) {
+    const res = await fetch(`${API_URL}/api/v1/tickets/${ticketId}/actions/${actionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        error.fieldErrors = data?.error?.fieldErrors;
+        error.correlationId = data?.error?.correlationId;
+        throw error;
+    }
+    return data;
+}

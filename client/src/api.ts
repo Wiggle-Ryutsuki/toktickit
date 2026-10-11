@@ -476,3 +476,112 @@ export async function resetUserPasswordApi(
   return data;
 }
 
+export type ActionStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+
+export interface ActionTakenUserDto {
+  id: number;
+  displayName: string;
+  email: string;
+  role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+}
+
+export interface ActionTakenDto {
+  id: number;
+  ticketId: number;
+  actionDateTime: string;
+  description: string;
+  result: string | null;
+  status: ActionStatus;
+  performedBy: ActionTakenUserDto | null;
+  assignee: ActionTakenUserDto | null;
+  isFollowUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateActionPayload {
+  description: string;
+  result?: string | null;
+  status?: ActionStatus;
+  assigneeId?: number | null;
+  isFollowUpRequired?: boolean;
+  followUpNote?: string | null;
+  attachmentNotes?: string | null;
+  actionDateTime?: string;
+}
+
+export interface UpdateActionPayload {
+  description?: string;
+  result?: string | null;
+  status?: ActionStatus;
+  assigneeId?: number | null;
+  isFollowUpRequired?: boolean;
+  followUpNote?: string | null;
+  attachmentNotes?: string | null;
+  version?: number;
+}
+
+export async function getTicketActionsApi(ticketId: number): Promise<ActionTakenDto[]> {
+  const res = await fetch(`${API_URL}/api/v1/tickets/${ticketId}/actions`, {
+    method: "GET",
+    credentials: "include",
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    (error as any).correlationId = data?.error?.correlationId;
+    throw error;
+  }
+  return data;
+}
+
+export async function createTicketActionApi(
+  ticketId: number,
+  payload: CreateActionPayload
+): Promise<ActionTakenDto> {
+  const res = await fetch(`${API_URL}/api/v1/tickets/${ticketId}/actions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    (error as any).fieldErrors = data?.error?.fieldErrors;
+    (error as any).correlationId = data?.error?.correlationId;
+    throw error;
+  }
+  return data;
+}
+
+export async function updateTicketActionApi(
+  ticketId: number,
+  actionId: number,
+  payload: UpdateActionPayload
+): Promise<ActionTakenDto> {
+  const res = await fetch(`${API_URL}/api/v1/tickets/${ticketId}/actions/${actionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+    (error as any).status = res.status;
+    (error as any).code = data?.error?.code;
+    (error as any).fieldErrors = data?.error?.fieldErrors;
+    (error as any).correlationId = data?.error?.correlationId;
+    throw error;
+  }
+  return data;
+}
+
