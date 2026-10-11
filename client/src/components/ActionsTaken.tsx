@@ -334,7 +334,7 @@ export default function ActionsTaken({ ticketId, isReadOnly = false }: ActionsTa
     (editingAction.status === "COMPLETED" || editingAction.status === "CANCELLED");
 
   return (
-    <div className="card border-0 shadow-sm mb-4" data-testid="actions-taken-section">
+    <div className="card border-0 shadow-sm mb-4" id="actions-taken-container" data-testid="actions-taken-section">
       {/* Header */}
       <div className="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div className="d-flex align-items-center gap-2">

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useContext } from "react";
 import { AuthContext } from "../context/AuthContext.js";
 import AttachmentSection from "./AttachmentSection.js";
 import ActionsTaken from "./ActionsTaken.js";
+import ResolutionGateBlockedModal from "./ResolutionGateBlockedModal.js";
 import { getTicketDetailApi, getStaffAssigneesApi, updateTicketOperationalApi, postCommentApi, postNoteApi, } from "../api.js";
 function formatDate(isoString) {
     if (!isoString)
@@ -66,16 +67,27 @@ function getRoleBadgeClass(role) {
             return "badge-role-requester";
     }
 }
-// Allowed state machine transitions according to BR-08
-const TRANSITION_MAP = {
-    NEW: ["ASSIGNED", "IN_PROGRESS", "CANCELLED"],
-    ASSIGNED: ["IN_PROGRESS", "PENDING_REQUESTER", "CANCELLED"],
-    IN_PROGRESS: ["PENDING_REQUESTER", "RESOLVED", "CANCELLED"],
-    PENDING_REQUESTER: ["IN_PROGRESS", "RESOLVED", "CANCELLED"],
-    RESOLVED: ["CLOSED", "IN_PROGRESS"],
-    CLOSED: ["IN_PROGRESS"],
-    CANCELLED: [],
-};
+// Permitted lifecycle state machine transitions according to BR-06, BR-08, BR-11 and contract Section 5.1
+export function getPermittedTransitions(currentStatus, hasOwner) {
+    switch (currentStatus) {
+        case "NEW":
+            return ["ASSIGNED", "IN_PROGRESS", "CANCELLED"];
+        case "ASSIGNED":
+            return ["IN_PROGRESS", "PENDING_REQUESTER", "CANCELLED"];
+        case "IN_PROGRESS":
+            return ["PENDING_REQUESTER", "RESOLVED", "CANCELLED"];
+        case "PENDING_REQUESTER":
+            return ["IN_PROGRESS", "RESOLVED", "CANCELLED"];
+        case "RESOLVED":
+            return ["CLOSED", hasOwner ? "IN_PROGRESS" : "NEW"];
+        case "CLOSED":
+            return [hasOwner ? "IN_PROGRESS" : "NEW"];
+        case "CANCELLED":
+            return [hasOwner ? "IN_PROGRESS" : "NEW"];
+        default:
+            return [];
+    }
+}
 export default function StaffTicketDetail({ ticketId, onBack }) {
     const auth = useContext(AuthContext);
     const [ticket, setTicket] = useState(null);
@@ -89,6 +101,9 @@ export default function StaffTicketDetail({ ticketId, onBack }) {
     const [selectedStatus, setSelectedStatus] = useState("");
     const [resolutionSummaryInput, setResolutionSummaryInput] = useState("");
     const [resolutionError, setResolutionError] = useState(null);
+    const [cancellationReason, setCancellationReason] = useState("");
+    const [cancellationError, setCancellationError] = useState(null);
+    const [resolutionGateConflict, setResolutionGateConflict] = useState(null);
     const [isUpdating, setIsUpdating] = useState(false);
     const [updateSuccessMessage, setUpdateSuccessMessage] = useState(null);
     const [concurrencyConflict, setConcurrencyConflict] = useState(false);
@@ -108,6 +123,8 @@ export default function StaffTicketDetail({ ticketId, onBack }) {
         setErrorCode(null);
         setErrorMessage(null);
         setConcurrencyConflict(false);
+        setResolutionGateConflict(null);
+        setCancellationError(null);
         try {
             const data = await getTicketDetailApi(ticketId);
             setTicket(data);
@@ -115,6 +132,7 @@ export default function StaffTicketDetail({ ticketId, onBack }) {
             setSelectedItPriority(data.itPriority || "LOW");
             setSelectedStatus(data.status);
             setResolutionSummaryInput(data.resolutionSummary || "");
+            setCancellationReason(data.status === "CANCELLED" ? data.resolutionSummary || "" : "");
         }
         catch (err) {
             setErrorCode(err.code || (err.status === 403 ? "FORBIDDEN" : err.status === 404 ? "TICKET_NOT_FOUND" : "ERROR"));
@@ -205,19 +223,29 @@ export default function StaffTicketDetail({ ticketId, onBack }) {
             setIsUpdating(false);
         }
     };
-    // Save Operational Controls (Owner, IT Priority, Status, Resolution Summary)
+    // Save Operational Controls (Owner, IT Priority, Status, Resolution Summary, Cancellation)
     const handleSaveOperational = async (e) => {
         e.preventDefault();
         if (!ticket)
             return;
         setResolutionError(null);
+        setCancellationError(null);
         setUpdateSuccessMessage(null);
         setConcurrencyConflict(false);
+        setResolutionGateConflict(null);
         const isMovingToResolvedOrClosed = selectedStatus === "RESOLVED" || selectedStatus === "CLOSED";
         if (isMovingToResolvedOrClosed) {
             const trimmed = resolutionSummaryInput.trim();
             if (trimmed.length < 10 || trimmed.length > 2000) {
                 setResolutionError("Resolution summary is required and must be between 10 and 2000 characters.");
+                return;
+            }
+        }
+        const isCancelling = selectedStatus === "CANCELLED" && ticket.status !== "CANCELLED";
+        if (isCancelling) {
+            const trimmed = cancellationReason.trim();
+            if (trimmed.length < 5 || trimmed.length > 2000) {
+                setCancellationError("Cancellation reason is required (between 5 and 2000 characters).");
                 return;
             }
         }
@@ -231,7 +259,11 @@ export default function StaffTicketDetail({ ticketId, onBack }) {
             if (selectedStatus !== ticket.status) {
                 payload.status = selectedStatus;
             }
-            if (isMovingToResolvedOrClosed || (resolutionSummaryInput.trim() && resolutionSummaryInput.trim() !== ticket.resolutionSummary)) {
+            if (isCancelling) {
+                payload.cancellationReason = cancellationReason.trim();
+                payload.resolutionSummary = cancellationReason.trim();
+            }
+            else if (isMovingToResolvedOrClosed || (resolutionSummaryInput.trim() && resolutionSummaryInput.trim() !== ticket.resolutionSummary)) {
                 payload.resolutionSummary = resolutionSummaryInput.trim();
             }
             const updated = await updateTicketOperationalApi(ticket.id, payload);
@@ -254,12 +286,33 @@ export default function StaffTicketDetail({ ticketId, onBack }) {
             setSelectedItPriority(updated.itPriority);
             setSelectedStatus(updated.status);
             setResolutionSummaryInput(updated.resolutionSummary || "");
+            if (updated.status === "CANCELLED") {
+                setCancellationReason(updated.resolutionSummary || "");
+            }
             setUpdateSuccessMessage("Ticket operations updated successfully.");
         }
         catch (err) {
-            if (err.status === 409 || err.code === "CONFLICT") {
+            if (err.code === "TICKET_STATE_CONFLICT") {
+                setResolutionGateConflict({
+                    message: err.message ||
+                        "Ticket cannot be resolved while actions taken remain open. Please complete or cancel all actions taken before resolving.",
+                    fieldError: err.fieldErrors?.[0]?.message ||
+                        (err.fieldErrors?.length ? err.fieldErrors.map((f) => f.message).join(", ") : undefined),
+                });
+                setSelectedStatus(ticket.status);
+            }
+            else if (err.status === 409 ||
+                err.code === "CONFLICT" ||
+                err.code === "STALE_UPDATE_CONFLICT" ||
+                err.code === "CONCURRENCY_CONFLICT") {
                 setConcurrencyConflict(true);
                 setTimeout(() => fetchTicket(), 1500);
+            }
+            else if (err.code === "MISSING_CANCELLATION_REASON") {
+                setCancellationError(err.message || "Cancellation reason is required (minimum 5 characters).");
+            }
+            else if (err.code === "MISSING_RESOLUTION_SUMMARY") {
+                setResolutionError(err.message || "Resolution summary is required (between 10 and 2000 characters).");
             }
             else {
                 setErrorMessage(err.message || "Failed to update ticket.");
@@ -352,12 +405,12 @@ export default function StaffTicketDetail({ ticketId, onBack }) {
     if (!ticket) {
         return (_jsxs("div", { className: "container py-4", style: { maxWidth: 1280 }, children: [_jsx("div", { className: "d-flex align-items-center mb-4", children: _jsx("button", { type: "button", className: "btn btn-zen-secondary btn-sm", onClick: onBack, children: "\u2190 Back to Ticket Queue" }) }), _jsxs("div", { className: "alert alert-warning shadow-sm p-4 text-center bg-white border border-warning-subtle rounded-3", children: [_jsx("span", { className: "fs-1 text-warning mb-2 d-block", children: "\uD83D\uDD0D" }), _jsx("h4", { className: "fw-semibold text-dark mb-2", children: "Ticket Not Found" }), _jsx("p", { className: "text-muted mb-4", children: errorMessage || "The requested ticket does not exist." }), _jsx("button", { type: "button", className: "btn btn-zen-primary", onClick: onBack, children: "Back to Ticket Queue" })] })] }));
     }
-    const allowedTransitions = TRANSITION_MAP[ticket.status] || [];
+    const allowedTransitions = getPermittedTransitions(ticket.status, Boolean(selectedOwnerId || ticket.ownerId));
     const publicComments = ticket.comments || [];
     const internalNotes = ticket.notes || [];
     const isTicketClosed = ticket.status === "CLOSED";
     const isTargetResolvedOrClosed = selectedStatus === "RESOLVED" || selectedStatus === "CLOSED";
-    return (_jsxs("div", { className: "container py-4", style: { maxWidth: 1280 }, "data-testid": "staff-ticket-detail-view", children: [_jsxs("div", { className: "d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2", children: [_jsx("nav", { "aria-label": "breadcrumb", children: _jsxs("ol", { className: "breadcrumb mb-0", children: [_jsx("li", { className: "breadcrumb-item", children: _jsx("button", { type: "button", className: "btn btn-link p-0 text-decoration-none text-muted small", onClick: onBack, children: "Ticket Queue" }) }), _jsx("li", { className: "breadcrumb-item active small", "aria-current": "page", children: ticket.ticketNo })] }) }), _jsx("button", { type: "button", className: "btn btn-zen-secondary btn-sm", onClick: onBack, children: "\u2190 Back to Ticket Queue" })] }), concurrencyConflict && (_jsxs("div", { className: "alert alert-danger d-flex align-items-center mb-4 shadow-sm", role: "alert", children: [_jsx("span", { className: "me-2 fs-5", children: "\u26A0\uFE0F" }), _jsxs("div", { children: [_jsx("strong", { children: "Concurrency Conflict:" }), " This ticket was modified by another user. Reloading latest version..."] })] })), updateSuccessMessage && (_jsxs("div", { className: "alert alert-success alert-dismissible fade show mb-4 shadow-sm", role: "alert", children: [_jsxs("span", { children: ["\u2713 ", updateSuccessMessage] }), _jsx("button", { type: "button", className: "btn-close", onClick: () => setUpdateSuccessMessage(null), "aria-label": "Close" })] })), _jsxs("div", { className: "row g-4", children: [_jsxs("div", { className: "col-12 col-lg-8", children: [_jsx("div", { className: "card border-0 shadow-sm mb-4", children: _jsxs("div", { className: "card-body p-4", children: [ticket.requesterResolutionConfirmedAt && (_jsxs("div", { className: "zen-resolved-indication-banner mb-3", "data-testid": "requester-resolved-indication", children: [_jsx("span", { className: "fs-5", children: "\u2713" }), _jsxs("div", { children: [_jsx("strong", { children: "Requester Confirmation:" }), " The requester indicated this problem appears resolved on", " ", formatDate(ticket.requesterResolutionConfirmedAt), "."] })] })), _jsxs("div", { className: "d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3", children: [_jsxs("div", { children: [_jsxs("div", { className: "d-flex align-items-center gap-2 mb-2 flex-wrap", children: [_jsx("h3", { className: "fw-bold mb-0", style: { color: "var(--color-primary-green)" }, children: ticket.ticketNo }), _jsx("span", { className: `badge ${getStatusBadgeClass(ticket.status)}`, "data-testid": "ticket-status-badge", children: ticket.status }), _jsxs("span", { className: `badge ${getPriorityBadgeClass(ticket.itPriority)}`, "data-testid": "it-priority-badge", children: ["IT Priority: ", ticket.itPriority] }), _jsxs("span", { className: "badge bg-light text-muted border", children: ["Requester Priority: ", ticket.requestedPriority] })] }), _jsx("h4", { className: "fw-semibold text-dark mb-1", children: ticket.summary })] }), _jsxs("div", { className: "text-sm-end text-muted small", children: [_jsxs("div", { children: ["Created: ", formatDate(ticket.createdAt)] }), _jsxs("div", { children: ["Last Updated: ", formatDate(ticket.updatedAt)] }), _jsxs("div", { className: "text-muted opacity-75", children: ["Version: #", ticket.version] })] })] }), _jsx("hr", { className: "my-3 text-muted opacity-25" }), _jsxs("div", { className: "row g-3 small mb-4", children: [_jsxs("div", { className: "col-sm-6 col-md-4", children: [_jsx("span", { className: "text-muted fw-medium d-block", children: "Requester" }), _jsxs("span", { className: "text-dark fw-semibold", children: [ticket.requester.displayName, " (", ticket.requester.email, ")"] })] }), _jsxs("div", { className: "col-sm-6 col-md-4", children: [_jsx("span", { className: "text-muted fw-medium d-block", children: "Category" }), _jsx("span", { className: "badge bg-light text-dark border", children: ticket.category.name })] }), _jsxs("div", { className: "col-sm-6 col-md-4", children: [_jsx("span", { className: "text-muted fw-medium d-block", children: "Related System" }), _jsx("span", { className: "badge bg-light text-dark border", children: ticket.relatedSystem.name })] })] }), _jsxs("div", { className: "mb-3", children: [_jsx("h6", { className: "fw-bold text-muted text-uppercase small mb-2", children: "Original Description" }), _jsx("div", { className: "p-3 bg-light rounded text-dark border", style: { minHeight: "80px", whiteSpace: "pre-wrap", lineHeight: 1.6 }, children: ticket.description })] }), ticket.resolutionSummary && (_jsxs("div", { className: "mt-3 p-3 bg-success-subtle border border-success-subtle rounded", children: [_jsx("h6", { className: "fw-bold text-success text-uppercase small mb-1", children: "Recorded Resolution Summary" }), _jsx("p", { className: "mb-0 text-dark small", style: { whiteSpace: "pre-wrap" }, children: ticket.resolutionSummary })] }))] }) }), _jsx(ActionsTaken, { ticketId: ticket.id }), _jsxs("div", { className: "card border-0 shadow-sm mb-4", children: [_jsx("div", { className: "card-header bg-white border-bottom-0 pb-0 pt-3 px-4", children: _jsxs("div", { className: "zen-detail-tabs mb-0", role: "tablist", children: [_jsxs("button", { type: "button", role: "tab", "aria-selected": activeTab === "comments", className: `zen-detail-tab-btn ${activeTab === "comments" ? "active" : ""}`, onClick: () => setActiveTab("comments"), "data-testid": "tab-comments", children: [_jsx("span", { children: "\uD83D\uDCAC Public Comments" }), _jsx("span", { className: "badge bg-light text-dark border", children: publicComments.length })] }), _jsxs("button", { type: "button", role: "tab", "aria-selected": activeTab === "notes", className: `zen-detail-tab-btn tab-notes ${activeTab === "notes" ? "active" : ""}`, onClick: () => setActiveTab("notes"), "data-testid": "tab-notes", children: [_jsx("span", { children: "\uD83D\uDD12 Internal Notes" }), _jsx("span", { className: "badge bg-warning-subtle text-dark border border-warning-subtle", children: internalNotes.length })] }), _jsxs("button", { type: "button", role: "tab", "aria-selected": activeTab === "attachments", className: `zen-detail-tab-btn ${activeTab === "attachments" ? "active" : ""}`, onClick: () => setActiveTab("attachments"), "data-testid": "tab-attachments", children: [_jsx("span", { children: "\uD83D\uDCCE Attachments" }), _jsx("span", { className: "badge bg-light text-dark border", children: ticket.attachments?.length || 0 })] })] }) }), _jsxs("div", { className: "card-body p-4", children: [activeTab === "comments" && (_jsxs("div", { "data-testid": "public-comments-section", children: [_jsxs("div", { className: "mb-3 d-flex justify-content-between align-items-center", children: [_jsx("h6", { className: "fw-bold text-dark mb-0", children: "Public Comments Thread" }), _jsx("span", { className: "text-muted small", children: "Visible to Requester and IT Staff" })] }), publicComments.length === 0 ? (_jsx("div", { className: "text-center py-4 text-muted bg-light rounded border mb-4 small", children: "No public comments posted yet." })) : (_jsx("div", { className: "comments-list mb-4", children: publicComments.map((c) => (_jsxs("div", { className: "zen-comment-item", "data-testid": "public-comment-item", children: [_jsxs("div", { className: "d-flex justify-content-between align-items-center mb-2", children: [_jsxs("div", { className: "d-flex align-items-center gap-2", children: [_jsx("span", { className: "fw-semibold text-dark small", children: c.author?.displayName }), _jsx("span", { className: `badge ${getRoleBadgeClass(c.author?.role)}`, children: c.author?.role === "IT_STAFF" ? "IT Staff" : c.author?.role === "ADMINISTRATOR" ? "Admin" : "Requester" })] }), _jsx("span", { className: "text-muted small", children: formatDate(c.createdAt) })] }), _jsx("div", { className: "text-dark small", style: { whiteSpace: "pre-wrap", lineHeight: 1.5 }, children: c.content })] }, c.id))) })), _jsxs("form", { onSubmit: handlePostComment, className: "border-top pt-3", children: [_jsx("label", { htmlFor: "new-comment-input", className: "form-label fw-semibold small text-dark", children: "Add Public Comment" }), _jsx("textarea", { id: "new-comment-input", className: `form-control ${commentError ? "is-invalid" : ""}`, rows: 3, placeholder: "Type a comment to communicate with the requester... (1-2000 characters)", value: newComment, onChange: (e) => {
+    return (_jsxs("div", { className: "container py-4", style: { maxWidth: 1280 }, "data-testid": "staff-ticket-detail-view", children: [_jsxs("div", { className: "d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2", children: [_jsx("nav", { "aria-label": "breadcrumb", children: _jsxs("ol", { className: "breadcrumb mb-0", children: [_jsx("li", { className: "breadcrumb-item", children: _jsx("button", { type: "button", className: "btn btn-link p-0 text-decoration-none text-muted small", onClick: onBack, children: "Ticket Queue" }) }), _jsx("li", { className: "breadcrumb-item active small", "aria-current": "page", children: ticket.ticketNo })] }) }), _jsx("button", { type: "button", className: "btn btn-zen-secondary btn-sm", onClick: onBack, children: "\u2190 Back to Ticket Queue" })] }), concurrencyConflict && (_jsxs("div", { className: "alert alert-danger d-flex align-items-center mb-4 shadow-sm", role: "alert", children: [_jsx("span", { className: "me-2 fs-5", children: "\u26A0\uFE0F" }), _jsxs("div", { children: [_jsx("strong", { children: "Concurrency Conflict:" }), " This ticket was modified by another user. Reloading latest version..."] })] })), updateSuccessMessage && (_jsxs("div", { className: "alert alert-success alert-dismissible fade show mb-4 shadow-sm", role: "alert", children: [_jsxs("span", { children: ["\u2713 ", updateSuccessMessage] }), _jsx("button", { type: "button", className: "btn-close", onClick: () => setUpdateSuccessMessage(null), "aria-label": "Close" })] })), _jsxs("div", { className: "row g-4", children: [_jsxs("div", { className: "col-12 col-lg-8", children: [_jsx("div", { className: "card border-0 shadow-sm mb-4", children: _jsxs("div", { className: "card-body p-4", children: [ticket.requesterResolutionConfirmedAt && (_jsxs("div", { className: "zen-resolved-indication-banner mb-3", "data-testid": "requester-resolved-indication", children: [_jsx("span", { className: "fs-5", children: "\u2713" }), _jsxs("div", { children: [_jsxs("div", { children: [_jsx("strong", { children: "Requester Confirmation:" }), " The requester indicated this problem appears resolved on", " ", formatDate(ticket.requesterResolutionConfirmedAt), "."] }), ticket.hasOpenActionsWarning && (_jsxs("div", { className: "alert alert-warning py-1 px-2 mt-2 mb-0 small border text-dark", "data-testid": "open-actions-warning-banner", children: ["\u26A0\uFE0F ", _jsx("strong", { children: "Open Actions Warning:" }), " The requester indicated resolution, but open actions taken remain incomplete."] }))] })] })), _jsxs("div", { className: "d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3", children: [_jsxs("div", { children: [_jsxs("div", { className: "d-flex align-items-center gap-2 mb-2 flex-wrap", children: [_jsx("h3", { className: "fw-bold mb-0", style: { color: "var(--color-primary-green)" }, children: ticket.ticketNo }), _jsx("span", { className: `badge ${getStatusBadgeClass(ticket.status)}`, "data-testid": "ticket-status-badge", children: ticket.status }), _jsxs("span", { className: `badge ${getPriorityBadgeClass(ticket.itPriority)}`, "data-testid": "it-priority-badge", children: ["IT Priority: ", ticket.itPriority] }), _jsxs("span", { className: "badge bg-light text-muted border", children: ["Requester Priority: ", ticket.requestedPriority] })] }), _jsx("h4", { className: "fw-semibold text-dark mb-1", children: ticket.summary })] }), _jsxs("div", { className: "text-sm-end text-muted small", children: [_jsxs("div", { children: ["Created: ", formatDate(ticket.createdAt)] }), _jsxs("div", { children: ["Last Updated: ", formatDate(ticket.updatedAt)] }), _jsxs("div", { className: "text-muted opacity-75", children: ["Version: #", ticket.version] })] })] }), _jsx("hr", { className: "my-3 text-muted opacity-25" }), _jsxs("div", { className: "row g-3 small mb-4", children: [_jsxs("div", { className: "col-sm-6 col-md-4", children: [_jsx("span", { className: "text-muted fw-medium d-block", children: "Requester" }), _jsxs("span", { className: "text-dark fw-semibold", children: [ticket.requester.displayName, " (", ticket.requester.email, ")"] })] }), _jsxs("div", { className: "col-sm-6 col-md-4", children: [_jsx("span", { className: "text-muted fw-medium d-block", children: "Category" }), _jsx("span", { className: "badge bg-light text-dark border", children: ticket.category.name })] }), _jsxs("div", { className: "col-sm-6 col-md-4", children: [_jsx("span", { className: "text-muted fw-medium d-block", children: "Related System" }), _jsx("span", { className: "badge bg-light text-dark border", children: ticket.relatedSystem.name })] })] }), _jsxs("div", { className: "mb-3", children: [_jsx("h6", { className: "fw-bold text-muted text-uppercase small mb-2", children: "Original Description" }), _jsx("div", { className: "p-3 bg-light rounded text-dark border", style: { minHeight: "80px", whiteSpace: "pre-wrap", lineHeight: 1.6 }, children: ticket.description })] }), ticket.resolutionSummary && (_jsxs("div", { className: "mt-3 p-3 bg-success-subtle border border-success-subtle rounded", children: [_jsx("h6", { className: "fw-bold text-success text-uppercase small mb-1", children: "Recorded Resolution Summary" }), _jsx("p", { className: "mb-0 text-dark small", style: { whiteSpace: "pre-wrap" }, children: ticket.resolutionSummary })] }))] }) }), _jsx(ActionsTaken, { ticketId: ticket.id }), _jsxs("div", { className: "card border-0 shadow-sm mb-4", children: [_jsx("div", { className: "card-header bg-white border-bottom-0 pb-0 pt-3 px-4", children: _jsxs("div", { className: "zen-detail-tabs mb-0", role: "tablist", children: [_jsxs("button", { type: "button", role: "tab", "aria-selected": activeTab === "comments", className: `zen-detail-tab-btn ${activeTab === "comments" ? "active" : ""}`, onClick: () => setActiveTab("comments"), "data-testid": "tab-comments", children: [_jsx("span", { children: "\uD83D\uDCAC Public Comments" }), _jsx("span", { className: "badge bg-light text-dark border", children: publicComments.length })] }), _jsxs("button", { type: "button", role: "tab", "aria-selected": activeTab === "notes", className: `zen-detail-tab-btn tab-notes ${activeTab === "notes" ? "active" : ""}`, onClick: () => setActiveTab("notes"), "data-testid": "tab-notes", children: [_jsx("span", { children: "\uD83D\uDD12 Internal Notes" }), _jsx("span", { className: "badge bg-warning-subtle text-dark border border-warning-subtle", children: internalNotes.length })] }), _jsxs("button", { type: "button", role: "tab", "aria-selected": activeTab === "attachments", className: `zen-detail-tab-btn ${activeTab === "attachments" ? "active" : ""}`, onClick: () => setActiveTab("attachments"), "data-testid": "tab-attachments", children: [_jsx("span", { children: "\uD83D\uDCCE Attachments" }), _jsx("span", { className: "badge bg-light text-dark border", children: ticket.attachments?.length || 0 })] })] }) }), _jsxs("div", { className: "card-body p-4", children: [activeTab === "comments" && (_jsxs("div", { "data-testid": "public-comments-section", children: [_jsxs("div", { className: "mb-3 d-flex justify-content-between align-items-center", children: [_jsx("h6", { className: "fw-bold text-dark mb-0", children: "Public Comments Thread" }), _jsx("span", { className: "text-muted small", children: "Visible to Requester and IT Staff" })] }), publicComments.length === 0 ? (_jsx("div", { className: "text-center py-4 text-muted bg-light rounded border mb-4 small", children: "No public comments posted yet." })) : (_jsx("div", { className: "comments-list mb-4", children: publicComments.map((c) => (_jsxs("div", { className: "zen-comment-item", "data-testid": "public-comment-item", children: [_jsxs("div", { className: "d-flex justify-content-between align-items-center mb-2", children: [_jsxs("div", { className: "d-flex align-items-center gap-2", children: [_jsx("span", { className: "fw-semibold text-dark small", children: c.author?.displayName }), _jsx("span", { className: `badge ${getRoleBadgeClass(c.author?.role)}`, children: c.author?.role === "IT_STAFF" ? "IT Staff" : c.author?.role === "ADMINISTRATOR" ? "Admin" : "Requester" })] }), _jsx("span", { className: "text-muted small", children: formatDate(c.createdAt) })] }), _jsx("div", { className: "text-dark small", style: { whiteSpace: "pre-wrap", lineHeight: 1.5 }, children: c.content })] }, c.id))) })), _jsxs("form", { onSubmit: handlePostComment, className: "border-top pt-3", children: [_jsx("label", { htmlFor: "new-comment-input", className: "form-label fw-semibold small text-dark", children: "Add Public Comment" }), _jsx("textarea", { id: "new-comment-input", className: `form-control ${commentError ? "is-invalid" : ""}`, rows: 3, placeholder: "Type a comment to communicate with the requester... (1-2000 characters)", value: newComment, onChange: (e) => {
                                                                     setNewComment(e.target.value);
                                                                     if (commentError)
                                                                         setCommentError(null);
@@ -369,9 +422,31 @@ export default function StaffTicketDetail({ ticketId, onBack }) {
                                                         setSelectedStatus(e.target.value);
                                                         if (resolutionError)
                                                             setResolutionError(null);
-                                                    }, disabled: isUpdating, "data-testid": "status-transition-select", children: [_jsxs("option", { value: ticket.status, children: [ticket.status, " (Current)"] }), allowedTransitions.map((nextStatus) => (_jsxs("option", { value: nextStatus, children: ["\u2192 Transition to ", nextStatus] }, nextStatus)))] }), allowedTransitions.length === 0 && (_jsxs("div", { className: "form-text small text-muted", children: ["No further transitions available from ", ticket.status, "."] }))] }), isTargetResolvedOrClosed && (_jsxs("div", { className: "mb-3 p-3 bg-light rounded border", "data-testid": "resolution-summary-container", children: [_jsxs("label", { htmlFor: "resolution-summary-input", className: "form-label fw-semibold small text-danger mb-1", children: ["* Resolution Summary (Required for ", selectedStatus, ")"] }), _jsx("textarea", { id: "resolution-summary-input", className: `form-control form-control-sm ${resolutionError ? "is-invalid" : ""}`, rows: 4, placeholder: "Describe how the problem was resolved or reason for closing (10-2000 characters)...", value: resolutionSummaryInput, onChange: (e) => {
+                                                    }, disabled: isUpdating, "data-testid": "status-transition-select", children: [_jsxs("option", { value: ticket.status, children: [ticket.status, " (Current)"] }), allowedTransitions.map((nextStatus) => {
+                                                            const isReopen = (ticket.status === "RESOLVED" || ticket.status === "CLOSED" || ticket.status === "CANCELLED") &&
+                                                                (nextStatus === "IN_PROGRESS" || nextStatus === "NEW");
+                                                            const label = isReopen ? `→ Reopen Ticket (${nextStatus})` : `→ Transition to ${nextStatus}`;
+                                                            return (_jsx("option", { value: nextStatus, children: label }, nextStatus));
+                                                        })] }), allowedTransitions.length === 0 && (_jsxs("div", { className: "form-text small text-muted", children: ["No further transitions available from ", ticket.status, "."] }))] }), isTargetResolvedOrClosed && (_jsxs("div", { className: "mb-3 p-3 bg-light rounded border", "data-testid": "resolution-summary-container", children: [_jsxs("label", { htmlFor: "resolution-summary-input", className: "form-label fw-semibold small text-danger mb-1", children: ["* Resolution Summary (Required for ", selectedStatus, ")"] }), _jsx("textarea", { id: "resolution-summary-input", className: `form-control form-control-sm ${resolutionError ? "is-invalid" : ""}`, rows: 4, placeholder: "Describe how the problem was resolved or reason for closing (10-2000 characters)...", value: resolutionSummaryInput, onChange: (e) => {
                                                         setResolutionSummaryInput(e.target.value);
                                                         if (resolutionError)
                                                             setResolutionError(null);
-                                                    }, maxLength: 2000, disabled: isUpdating, "data-testid": "resolution-summary-input" }), _jsx("div", { className: "d-flex justify-content-between align-items-center mt-1", children: _jsxs("span", { className: "text-muted small", style: { fontSize: "0.75rem" }, children: ["Min 10 chars (", resolutionSummaryInput.trim().length, "/2000)"] }) }), resolutionError && (_jsx("div", { className: "zen-field-error mt-1", "data-testid": "resolution-summary-error", children: resolutionError }))] })), _jsx("div", { className: "d-grid mt-4", children: _jsx("button", { type: "submit", className: "btn btn-zen-primary btn-sm py-2", disabled: isUpdating, "data-testid": "save-operations-button", children: isUpdating ? "Saving Changes..." : "Save Operations" }) })] }), _jsx("hr", { className: "my-3 text-muted opacity-25" }), _jsxs("div", { className: "small text-muted", children: [_jsxs("div", { className: "mb-1", children: [_jsx("strong", { children: "Ticket ID:" }), " #", ticket.id] }), _jsxs("div", { className: "mb-1", children: [_jsx("strong", { children: "Optimistic Version:" }), " ", ticket.version] }), _jsxs("div", { children: [_jsx("strong", { children: "Active Attachments:" }), " ", ticket.attachments?.filter((a) => !a.deletedAt).length || 0, " / 5"] })] })] }) })] })] }));
+                                                    }, maxLength: 2000, disabled: isUpdating, "data-testid": "resolution-summary-input" }), _jsx("div", { className: "d-flex justify-content-between align-items-center mt-1", children: _jsxs("span", { className: "text-muted small", style: { fontSize: "0.75rem" }, children: ["Min 10 chars (", resolutionSummaryInput.trim().length, "/2000)"] }) }), resolutionError && (_jsx("div", { className: "zen-field-error mt-1", "data-testid": "resolution-summary-error", children: resolutionError }))] })), selectedStatus === "CANCELLED" && (_jsxs("div", { className: "mb-3 p-3 bg-light rounded border border-warning-subtle", "data-testid": "cancellation-reason-container", children: [_jsx("label", { htmlFor: "cancellation-reason-input", className: "form-label fw-semibold small text-danger mb-1", children: "* Cancellation Reason (Required for CANCELLED)" }), _jsx("div", { className: "small text-muted mb-2", children: "Cancelling this ticket will automatically cancel all open (Planned and In Progress) Actions Taken." }), _jsx("textarea", { id: "cancellation-reason-input", className: `form-control form-control-sm ${cancellationError ? "is-invalid" : ""}`, rows: 3, placeholder: "Explain reason for cancelling this ticket (minimum 5 characters)...", value: cancellationReason, onChange: (e) => {
+                                                        setCancellationReason(e.target.value);
+                                                        if (cancellationError)
+                                                            setCancellationError(null);
+                                                    }, maxLength: 2000, disabled: isUpdating, "data-testid": "cancellation-reason-input" }), _jsx("div", { className: "d-flex justify-content-between align-items-center mt-1", children: _jsxs("span", { className: "text-muted small", style: { fontSize: "0.75rem" }, children: ["Min 5 chars (", cancellationReason.trim().length, "/2000)"] }) }), cancellationError && (_jsx("div", { className: "zen-field-error mt-1", "data-testid": "cancellation-reason-error", children: cancellationError }))] })), _jsx("div", { className: "d-grid mt-4", children: _jsx("button", { type: "submit", className: "btn btn-zen-primary btn-sm py-2", disabled: isUpdating, "data-testid": "save-operations-button", children: isUpdating ? "Saving Changes..." : "Save Operations" }) })] }), _jsx("hr", { className: "my-3 text-muted opacity-25" }), _jsxs("div", { className: "small text-muted", children: [_jsxs("div", { className: "mb-1", children: [_jsx("strong", { children: "Ticket ID:" }), " #", ticket.id] }), _jsxs("div", { className: "mb-1", children: [_jsx("strong", { children: "Optimistic Version:" }), " ", ticket.version] }), _jsxs("div", { children: [_jsx("strong", { children: "Active Attachments:" }), " ", ticket.attachments?.filter((a) => !a.deletedAt).length || 0, " / 5"] })] })] }) })] }), _jsx(ResolutionGateBlockedModal, { isOpen: Boolean(resolutionGateConflict), message: resolutionGateConflict?.message, fieldErrorMsg: resolutionGateConflict?.fieldError, onReviewActions: () => {
+                    setResolutionGateConflict(null);
+                    const section = document.getElementById("actions-taken-container") ||
+                        document.querySelector("[data-testid='actions-taken-section']");
+                    if (section) {
+                        section.scrollIntoView({ behavior: "smooth" });
+                        const firstActionRow = section.querySelector("[data-testid^='action-status-badge-'], [data-testid='action-item'], tbody tr");
+                        if (firstActionRow) {
+                            firstActionRow.focus?.();
+                        }
+                    }
+                }, onDismiss: () => {
+                    setResolutionGateConflict(null);
+                } })] }));
 }

@@ -196,6 +196,7 @@ export interface TicketDetailFullDto {
   owner: { id: number; displayName: string; email: string; role: string } | null;
   resolutionSummary: string | null;
   requesterResolutionConfirmedAt: string | null;
+  hasOpenActionsWarning?: boolean;
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -255,6 +256,7 @@ export async function updateTicketOperationalApi(
     itPriority?: string;
     status?: string;
     resolutionSummary?: string;
+    cancellationReason?: string;
     version: number;
   }
 ): Promise<TicketDetailFullDto> {
@@ -269,18 +271,28 @@ export async function updateTicketOperationalApi(
     const error = new Error(data?.error?.message || `HTTP ${res.status}`);
     (error as any).status = res.status;
     (error as any).code = data?.error?.code;
+    (error as any).fieldErrors = data?.error?.fieldErrors;
+    (error as any).correlationId = data?.error?.correlationId;
     throw error;
   }
   return data;
 }
 
 export async function indicateResolutionApi(
-  id: number
-): Promise<{ success: boolean; requesterResolutionConfirmedAt: string; message: string }> {
+  id: number,
+  payload?: { note?: string }
+): Promise<{
+  success: boolean;
+  message: string;
+  requesterResolutionConfirmedAt: string;
+  hasOpenActionsWarning?: boolean;
+  ticket?: any;
+}> {
   const res = await fetch(`${API_URL}/api/v1/tickets/${id}/resolve-indication`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
+    body: JSON.stringify(payload || {}),
   });
   const data = await res.json();
   if (!res.ok) {
