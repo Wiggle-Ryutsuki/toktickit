@@ -20,6 +20,7 @@ export interface TicketDetailDto {
   ticketOwner: string | null;
   resolutionSummary: string | null;
   requesterResolutionConfirmedAt: string | null;
+  hasOpenActionsWarning?: boolean;
   comments?: any[];
   requester: {
     id: number;
@@ -107,6 +108,7 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
 
   // Requester resolution indication state
   const [indicatingResolution, setIndicatingResolution] = useState<boolean>(false);
+  const [resolveFeedbackNote, setResolveFeedbackNote] = useState<string>("");
   const [resolveSuccessMessage, setResolveSuccessMessage] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
 
@@ -145,22 +147,39 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
     }
   }, [ticketId, selectedRequester?.id]);
 
-  const handleIndicateResolved = async () => {
+  const handleConfirmResolution = async () => {
     if (!ticket) return;
     setIndicatingResolution(true);
     setResolveError(null);
     setResolveSuccessMessage(null);
 
     try {
+      const payload: { note?: string } = {};
+      if (resolveFeedbackNote.trim()) {
+        payload.note = resolveFeedbackNote.trim();
+      }
+
       const res = await fetch(`${API_URL}/api/v1/tickets/${ticket.id}/resolve-indication`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data?.error?.message || "Failed to submit resolution indication.");
       }
-      setTicket((prev) => (prev ? { ...prev, requesterResolutionConfirmedAt: data.requesterResolutionConfirmedAt } : prev));
+      setTicket((prev) =>
+        prev
+          ? {
+              ...prev,
+              requesterResolutionConfirmedAt: data.requesterResolutionConfirmedAt,
+              hasOpenActionsWarning: Boolean(data.hasOpenActionsWarning ?? data.ticket?.hasOpenActionsWarning),
+              comments: data.ticket?.comments ? data.ticket.comments : prev.comments,
+            }
+          : prev
+      );
+      setResolveFeedbackNote("");
       setResolveSuccessMessage("Thank you! Your indication that the problem appears resolved has been recorded for IT Staff.");
     } catch (err: any) {
       setResolveError(err.message || "Failed to submit resolution indication.");
@@ -330,25 +349,46 @@ export default function RequesterTicketDetail({ ticketId, onBack }: RequesterTic
             <div className="zen-resolved-indication-banner mb-3" data-testid="requester-resolved-indication">
               <span className="fs-5">✓</span>
               <div>
-                <strong>Problem Appears Resolved:</strong> You confirmed that this problem appears resolved on{" "}
-                {formatDate(ticket.requesterResolutionConfirmedAt)}.
+                <div>
+                  <strong>Problem Appears Resolved:</strong> You confirmed that this problem appears resolved on{" "}
+                  {formatDate(ticket.requesterResolutionConfirmedAt)}.
+                </div>
+                {ticket.hasOpenActionsWarning && (
+                  <div className="small text-muted mt-1" data-testid="requester-open-actions-note">
+                    Note: Technical tasks are still wrapping up with IT Staff.
+                  </div>
+                )}
               </div>
             </div>
           ) : ticket.status !== "RESOLVED" && ticket.status !== "CLOSED" ? (
-            <div className="alert alert-light border d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 py-2 px-3">
-              <div className="small text-muted">
-                <span className="me-2">💡</span>
-                Has your problem been solved? Let IT Staff know that you are satisfied:
+            <div className="alert alert-light border mb-3 py-3 px-3">
+              <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                <div className="small text-muted">
+                  <span className="me-2">💡</span>
+                  Has your problem been solved? Let IT Staff know that you are satisfied:
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-outline-success btn-sm fw-semibold"
+                  onClick={handleConfirmResolution}
+                  disabled={indicatingResolution}
+                  data-testid="problem-appears-resolved-btn"
+                >
+                  {indicatingResolution ? "Submitting..." : "✓ Problem Appears Resolved"}
+                </button>
               </div>
-              <button
-                type="button"
-                className="btn btn-outline-success btn-sm fw-semibold"
-                onClick={handleIndicateResolved}
-                disabled={indicatingResolution}
-                data-testid="problem-appears-resolved-btn"
-              >
-                {indicatingResolution ? "Submitting..." : "✓ Problem Appears Resolved"}
-              </button>
+              <div className="mt-2">
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="Optional feedback note to IT Staff (e.g. Everything working great, thank you!)..."
+                  value={resolveFeedbackNote}
+                  onChange={(e) => setResolveFeedbackNote(e.target.value)}
+                  maxLength={1000}
+                  disabled={indicatingResolution}
+                  data-testid="resolve-feedback-input"
+                />
+              </div>
             </div>
           ) : null}
 

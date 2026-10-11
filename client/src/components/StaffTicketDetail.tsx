@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useContext } from "react";
 import { AuthContext } from "../context/AuthContext.js";
 import AttachmentSection from "./AttachmentSection.js";
 import ActionsTaken from "./ActionsTaken.js";
+import ResolutionGateBlockedModal from "./ResolutionGateBlockedModal.js";
 import {
   getTicketDetailApi,
   getStaffAssigneesApi,
@@ -82,16 +83,27 @@ function getRoleBadgeClass(role: string): string {
   }
 }
 
-// Allowed state machine transitions according to BR-08
-const TRANSITION_MAP: Record<string, string[]> = {
-  NEW: ["ASSIGNED", "IN_PROGRESS", "CANCELLED"],
-  ASSIGNED: ["IN_PROGRESS", "PENDING_REQUESTER", "CANCELLED"],
-  IN_PROGRESS: ["PENDING_REQUESTER", "RESOLVED", "CANCELLED"],
-  PENDING_REQUESTER: ["IN_PROGRESS", "RESOLVED", "CANCELLED"],
-  RESOLVED: ["CLOSED", "IN_PROGRESS"],
-  CLOSED: ["IN_PROGRESS"],
-  CANCELLED: [],
-};
+// Permitted lifecycle state machine transitions according to BR-06, BR-08, BR-11 and contract Section 5.1
+export function getPermittedTransitions(currentStatus: string, hasOwner: boolean): string[] {
+  switch (currentStatus) {
+    case "NEW":
+      return ["ASSIGNED", "IN_PROGRESS", "CANCELLED"];
+    case "ASSIGNED":
+      return ["IN_PROGRESS", "PENDING_REQUESTER", "CANCELLED"];
+    case "IN_PROGRESS":
+      return ["PENDING_REQUESTER", "RESOLVED", "CANCELLED"];
+    case "PENDING_REQUESTER":
+      return ["IN_PROGRESS", "RESOLVED", "CANCELLED"];
+    case "RESOLVED":
+      return ["CLOSED", hasOwner ? "IN_PROGRESS" : "NEW"];
+    case "CLOSED":
+      return [hasOwner ? "IN_PROGRESS" : "NEW"];
+    case "CANCELLED":
+      return [hasOwner ? "IN_PROGRESS" : "NEW"];
+    default:
+      return [];
+  }
+}
 
 export default function StaffTicketDetail({ ticketId, onBack }: StaffTicketDetailProps) {
   const auth = useContext(AuthContext);
@@ -108,6 +120,12 @@ export default function StaffTicketDetail({ ticketId, onBack }: StaffTicketDetai
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [resolutionSummaryInput, setResolutionSummaryInput] = useState<string>("");
   const [resolutionError, setResolutionError] = useState<string | null>(null);
+  const [cancellationReason, setCancellationReason] = useState<string>("");
+  const [cancellationError, setCancellationError] = useState<string | null>(null);
+  const [resolutionGateConflict, setResolutionGateConflict] = useState<{
+    message: string;
+    fieldError?: string;
+  } | null>(null);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [updateSuccessMessage, setUpdateSuccessMessage] = useState<string | null>(null);
   const [concurrencyConflict, setConcurrencyConflict] = useState<boolean>(false);
@@ -131,6 +149,8 @@ export default function StaffTicketDetail({ ticketId, onBack }: StaffTicketDetai
     setErrorCode(null);
     setErrorMessage(null);
     setConcurrencyConflict(false);
+    setResolutionGateConflict(null);
+    setCancellationError(null);
 
     try {
       const data = await getTicketDetailApi(ticketId);
@@ -139,6 +159,7 @@ export default function StaffTicketDetail({ ticketId, onBack }: StaffTicketDetai
       setSelectedItPriority(data.itPriority || "LOW");
       setSelectedStatus(data.status);
       setResolutionSummaryInput(data.resolutionSummary || "");
+      setCancellationReason(data.status === "CANCELLED" ? data.resolutionSummary || "" : "");
     } catch (err: any) {
       setErrorCode(err.code || (err.status === 403 ? "FORBIDDEN" : err.status === 404 ? "TICKET_NOT_FOUND" : "ERROR"));
       setErrorMessage(err.message || "Failed to load ticket details.");
@@ -229,20 +250,31 @@ export default function StaffTicketDetail({ ticketId, onBack }: StaffTicketDetai
     }
   };
 
-  // Save Operational Controls (Owner, IT Priority, Status, Resolution Summary)
+  // Save Operational Controls (Owner, IT Priority, Status, Resolution Summary, Cancellation)
   const handleSaveOperational = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ticket) return;
 
     setResolutionError(null);
+    setCancellationError(null);
     setUpdateSuccessMessage(null);
     setConcurrencyConflict(false);
+    setResolutionGateConflict(null);
 
     const isMovingToResolvedOrClosed = selectedStatus === "RESOLVED" || selectedStatus === "CLOSED";
     if (isMovingToResolvedOrClosed) {
       const trimmed = resolutionSummaryInput.trim();
       if (trimmed.length < 10 || trimmed.length > 2000) {
         setResolutionError("Resolution summary is required and must be between 10 and 2000 characters.");
+        return;
+      }
+    }
+
+    const isCancelling = selectedStatus === "CANCELLED" && ticket.status !== "CANCELLED";
+    if (isCancelling) {
+      const trimmed = cancellationReason.trim();
+      if (trimmed.length < 5 || trimmed.length > 2000) {
+        setCancellationError("Cancellation reason is required (between 5 and 2000 characters).");
         return;
       }
     }
@@ -254,6 +286,7 @@ export default function StaffTicketDetail({ ticketId, onBack }: StaffTicketDetai
         itPriority?: string;
         status?: string;
         resolutionSummary?: string;
+        cancellationReason?: string;
         version: number;
       } = {
         ownerId: selectedOwnerId ? parseInt(selectedOwnerId, 10) : null,
@@ -265,7 +298,10 @@ export default function StaffTicketDetail({ ticketId, onBack }: StaffTicketDetai
         payload.status = selectedStatus;
       }
 
-      if (isMovingToResolvedOrClosed || (resolutionSummaryInput.trim() && resolutionSummaryInput.trim() !== ticket.resolutionSummary)) {
+      if (isCancelling) {
+        payload.cancellationReason = cancellationReason.trim();
+        payload.resolutionSummary = cancellationReason.trim();
+      } else if (isMovingToResolvedOrClosed || (resolutionSummaryInput.trim() && resolutionSummaryInput.trim() !== ticket.resolutionSummary)) {
         payload.resolutionSummary = resolutionSummaryInput.trim();
       }
 
@@ -288,11 +324,33 @@ export default function StaffTicketDetail({ ticketId, onBack }: StaffTicketDetai
       setSelectedItPriority(updated.itPriority);
       setSelectedStatus(updated.status);
       setResolutionSummaryInput(updated.resolutionSummary || "");
+      if (updated.status === "CANCELLED") {
+        setCancellationReason(updated.resolutionSummary || "");
+      }
       setUpdateSuccessMessage("Ticket operations updated successfully.");
     } catch (err: any) {
-      if (err.status === 409 || err.code === "CONFLICT") {
+      if (err.code === "TICKET_STATE_CONFLICT") {
+        setResolutionGateConflict({
+          message:
+            err.message ||
+            "Ticket cannot be resolved while actions taken remain open. Please complete or cancel all actions taken before resolving.",
+          fieldError:
+            err.fieldErrors?.[0]?.message ||
+            (err.fieldErrors?.length ? err.fieldErrors.map((f: any) => f.message).join(", ") : undefined),
+        });
+        setSelectedStatus(ticket.status);
+      } else if (
+        err.status === 409 ||
+        err.code === "CONFLICT" ||
+        err.code === "STALE_UPDATE_CONFLICT" ||
+        err.code === "CONCURRENCY_CONFLICT"
+      ) {
         setConcurrencyConflict(true);
         setTimeout(() => fetchTicket(), 1500);
+      } else if (err.code === "MISSING_CANCELLATION_REASON") {
+        setCancellationError(err.message || "Cancellation reason is required (minimum 5 characters).");
+      } else if (err.code === "MISSING_RESOLUTION_SUMMARY") {
+        setResolutionError(err.message || "Resolution summary is required (between 10 and 2000 characters).");
       } else {
         setErrorMessage(err.message || "Failed to update ticket.");
       }
@@ -429,7 +487,7 @@ export default function StaffTicketDetail({ ticketId, onBack }: StaffTicketDetai
     );
   }
 
-  const allowedTransitions = TRANSITION_MAP[ticket.status] || [];
+  const allowedTransitions = getPermittedTransitions(ticket.status, Boolean(selectedOwnerId || ticket.ownerId));
   const publicComments = ticket.comments || [];
   const internalNotes = ticket.notes || [];
   const isTicketClosed = ticket.status === "CLOSED";
@@ -496,8 +554,15 @@ export default function StaffTicketDetail({ ticketId, onBack }: StaffTicketDetai
                 <div className="zen-resolved-indication-banner mb-3" data-testid="requester-resolved-indication">
                   <span className="fs-5">✓</span>
                   <div>
-                    <strong>Requester Confirmation:</strong> The requester indicated this problem appears resolved on{" "}
-                    {formatDate(ticket.requesterResolutionConfirmedAt)}.
+                    <div>
+                      <strong>Requester Confirmation:</strong> The requester indicated this problem appears resolved on{" "}
+                      {formatDate(ticket.requesterResolutionConfirmedAt)}.
+                    </div>
+                    {ticket.hasOpenActionsWarning && (
+                      <div className="alert alert-warning py-1 px-2 mt-2 mb-0 small border text-dark" data-testid="open-actions-warning-banner">
+                        ⚠️ <strong>Open Actions Warning:</strong> The requester indicated resolution, but open actions taken remain incomplete.
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -863,11 +928,17 @@ export default function StaffTicketDetail({ ticketId, onBack }: StaffTicketDetai
                   data-testid="status-transition-select"
                 >
                   <option value={ticket.status}>{ticket.status} (Current)</option>
-                  {allowedTransitions.map((nextStatus) => (
-                    <option key={nextStatus} value={nextStatus}>
-                      &rarr; Transition to {nextStatus}
-                    </option>
-                  ))}
+                  {allowedTransitions.map((nextStatus) => {
+                    const isReopen =
+                      (ticket.status === "RESOLVED" || ticket.status === "CLOSED" || ticket.status === "CANCELLED") &&
+                      (nextStatus === "IN_PROGRESS" || nextStatus === "NEW");
+                    const label = isReopen ? `→ Reopen Ticket (${nextStatus})` : `→ Transition to ${nextStatus}`;
+                    return (
+                      <option key={nextStatus} value={nextStatus}>
+                        {label}
+                      </option>
+                    );
+                  })}
                 </select>
                 {allowedTransitions.length === 0 && (
                   <div className="form-text small text-muted">
@@ -909,6 +980,42 @@ export default function StaffTicketDetail({ ticketId, onBack }: StaffTicketDetai
                 </div>
               )}
 
+              {/* 5. Mandatory Cancellation Reason when target is CANCELLED */}
+              {selectedStatus === "CANCELLED" && (
+                <div className="mb-3 p-3 bg-light rounded border border-warning-subtle" data-testid="cancellation-reason-container">
+                  <label htmlFor="cancellation-reason-input" className="form-label fw-semibold small text-danger mb-1">
+                    * Cancellation Reason (Required for CANCELLED)
+                  </label>
+                  <div className="small text-muted mb-2">
+                    Cancelling this ticket will automatically cancel all open (Planned and In Progress) Actions Taken.
+                  </div>
+                  <textarea
+                    id="cancellation-reason-input"
+                    className={`form-control form-control-sm ${cancellationError ? "is-invalid" : ""}`}
+                    rows={3}
+                    placeholder="Explain reason for cancelling this ticket (minimum 5 characters)..."
+                    value={cancellationReason}
+                    onChange={(e) => {
+                      setCancellationReason(e.target.value);
+                      if (cancellationError) setCancellationError(null);
+                    }}
+                    maxLength={2000}
+                    disabled={isUpdating}
+                    data-testid="cancellation-reason-input"
+                  />
+                  <div className="d-flex justify-content-between align-items-center mt-1">
+                    <span className="text-muted small" style={{ fontSize: "0.75rem" }}>
+                      Min 5 chars ({cancellationReason.trim().length}/2000)
+                    </span>
+                  </div>
+                  {cancellationError && (
+                    <div className="zen-field-error mt-1" data-testid="cancellation-reason-error">
+                      {cancellationError}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Save Button */}
               <div className="d-grid mt-4">
                 <button
@@ -939,6 +1046,31 @@ export default function StaffTicketDetail({ ticketId, onBack }: StaffTicketDetai
           </div>
         </div>
       </div>
+
+      {/* Resolution Gate Blocked High-Contrast Modal (UI-15) */}
+      <ResolutionGateBlockedModal
+        isOpen={Boolean(resolutionGateConflict)}
+        message={resolutionGateConflict?.message}
+        fieldErrorMsg={resolutionGateConflict?.fieldError}
+        onReviewActions={() => {
+          setResolutionGateConflict(null);
+          const section =
+            document.getElementById("actions-taken-container") ||
+            document.querySelector("[data-testid='actions-taken-section']");
+          if (section) {
+            section.scrollIntoView({ behavior: "smooth" });
+            const firstActionRow = section.querySelector(
+              "[data-testid^='action-status-badge-'], [data-testid='action-item'], tbody tr"
+            );
+            if (firstActionRow) {
+              (firstActionRow as HTMLElement).focus?.();
+            }
+          }
+        }}
+        onDismiss={() => {
+          setResolutionGateConflict(null);
+        }}
+      />
     </div>
   );
 }
