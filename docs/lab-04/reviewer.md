@@ -9,7 +9,7 @@
 | https://github.com/Wiggle-Ryutsuki/toktickit/pull/39 | feature/13-actions-taken-foundation | All good |
 | https://github.com/Wiggle-Ryutsuki/toktickit/pull/40 | feature/14-actions-taken-ui | Everything looks good to go. |
 | https://github.com/Wiggle-Ryutsuki/toktickit/pull/41 | feature/15-ticket-workflow-resolution-gate | Works as intended. |
-| https://github.com/Wiggle-Ryutsuki/toktickit/pull/42 | feature/16-role-dashboards |  |
+| https://github.com/Wiggle-Ryutsuki/toktickit/pull/42 | feature/16-role-dashboards | Approved |
 
 **Reviewer comment I received:** All approvals.
  
