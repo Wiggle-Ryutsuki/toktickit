@@ -11,12 +11,12 @@
 | https://github.com/Wiggle-Ryutsuki/toktickit/pull/41 | feature/15-ticket-workflow-resolution-gate | Works as intended. |
 | https://github.com/Wiggle-Ryutsuki/toktickit/pull/42 | feature/16-role-dashboards |  |
 
-**Reviewer comment I received:**    
+**Reviewer comment I received:** All approvals.
  
-**How I responded:** 
+**How I responded:** I thanked and moved on.
 
 ## Pull Requests I reviewed for my partner:
 
-**My comment:** 
+**My comment:** All approvals.
 
-**Partner's response:** 
+**Partner's response:** Thanked and moved on.

@@ -5,6 +5,27 @@ test.describe("Feature-9: Authentication & Password Change E2E", () => {
     // Reset firstlogin.requester account state to pristine before running tests
     // so tests are idempotent
     await request.post("http://localhost:3000/api/v1/auth/logout").catch(() => {});
+
+    // Ensure firstlogin.requester is in first-login state with initial password
+    const adminLogin = await request.post("http://localhost:3000/api/v1/auth/login", {
+      data: {
+        email: "admin.toktickit@kmutt.ac.th",
+        password: "Password123!",
+      },
+    });
+    if (adminLogin.ok()) {
+      const usersRes = await request.get("http://localhost:3000/api/v1/admin/users?search=firstlogin");
+      if (usersRes.ok()) {
+        const users = await usersRes.json();
+        const target = users.find((u: any) => u.email === "firstlogin.requester@kmutt.ac.th");
+        if (target) {
+          await request.post(`http://localhost:3000/api/v1/admin/users/${target.id}/reset-password`, {
+            data: { initialPassword: "InitialPass123!" },
+          });
+        }
+      }
+      await request.post("http://localhost:3000/api/v1/auth/logout").catch(() => {});
+    }
   });
 
   test("E2E-01: Complete standard login, header verification, and logout lifecycle", async ({ page }) => {

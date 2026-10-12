@@ -222,3 +222,85 @@ Detailed sprint specifications and review records are maintained under [`docs/la
 * [`reviewer.md`](docs/lab-03/reviewer.md): Specification review logs and contract compliance audits.
 * [`ai_use.md`](docs/lab-03/ai_use.md): AI tool attribution, prompt logs, and development reflections.
 
+---
+
+## Lab 4 Implementation Summary: Actions Taken, Ticket Lifecycle & Role Dashboards
+
+In Lab 4, TokTickIT reached full operational maturity by completing the service desk lifecycle. It introduces structured technical work tracking via parent-child **Actions Taken**, strict **Ticket Lifecycle & Resolution Gates** preventing unresolved or unverified ticket closure, and role-tailored **Operational Dashboards** for both Requesters and IT Staff with live metrics and interactive drill-down navigation—all built on PostgreSQL, Prisma, Express, and React under the **Zen Green UI design system**.
+
+### 1. Key Features Delivered
+
+* **Feature-13 & Feature-14: Actions Taken (Investigation & Resolution Logging)**
+  * **Relational Domain Model**: Evolved Prisma schema with an `ActionTaken` model linked to parent `Ticket` records, capturing Action Date/Time, Description, Result, Status (`PLANNED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`), Performed By, Assignee, Follow-Up Required flag, Follow-Up Note, and Attachment Notes.
+  * **Integrated Ticket Detail UI**: Embedded Actions Taken section in Ticket Detail with responsive desktop data tables (&ge;992px) collapsing into touch-friendly stacked cards on mobile (<768px).
+  * **Accountability Separation**: Individual actions can be assigned to different active IT Staff members while preserving primary Ticket Owner oversight.
+  * **Auto-Populated Context**: Create and Edit modals automatically record and display the authenticated actor as `Performed By`.
+  * **Conditional Validation**: Dynamically enforces mandatory `followUpNote` if and only if `isFollowUpRequired` is checked (`BR-05`).
+  * **Strict Role-Based Access Control**: IT Staff and Administrators create and modify actions; Requesters are restricted to a clean, read-only view (`403 Forbidden` on unauthorized mutation attempts).
+
+* **Feature-15: Enforced Ticket Lifecycle & Resolution Gate Workflow**
+  * **Strict Workflow State Machine**: Governs permitted status transitions (`NEW` &rarr; `IN_PROGRESS` &rarr; `PENDING_REQUESTER` &rarr; `RESOLVED` &rarr; `CLOSED` / `CANCELLED`), preventing illegal state jumps.
+  * **Resolution Gate Enforcement**: Backend rejects transitions to `RESOLVED` or `CLOSED` with `409 Conflict` (`TICKET_STATE_CONFLICT`) whenever any Action Taken remains incomplete (`PLANNED` or `IN_PROGRESS`) or when required resolution details are missing.
+  * **Advisory Requester Confirmation**: Requesters can submit *"Problem Appears Resolved"* as an audit confirmation note without bypassing IT staff verification gates.
+  * **Atomic Cascading Cancellation**: Cancelling a ticket automatically cascades cancellation to all open actions under the ticket with consistent audit traceability.
+  * **Reopening Rules**: Reopening resolved/closed tickets automatically transitions to `IN_PROGRESS` (if an owner is assigned) or `NEW` (if unassigned).
+
+* **Feature-16: Role-Based Operational Dashboards**
+  * **Persistent Top-Level Navigation**: Integrated "Dashboard" nav item in the persistent Zen Green navigation header, dynamically routing users based on role.
+  * **IT Staff Dashboard (`#/dashboard`)**:
+    * **5 Operational Metric Cards**: Real-time counters for `New`, `Open` (Assigned), `In Progress`, `Waiting for Requester` (Pending Requester), and `My Assigned` with 24-hour delta trend indicators and accessible icons.
+    * **Interactive Drill-Down Navigation**: Clicking any metric card directly navigates to the central queue pre-filtered by status or assignment (e.g. `status=NEW`, `assigned=mine`).
+    * **Recent Triage Tickets Table**: Highlights high-priority and recently updated tickets requiring staff attention.
+    * **Quick Actions**: Instant access to `+ Create Ticket` and manual queue data refresh.
+    * **Security Boundary**: Requesters attempting to access the IT Staff dashboard API or view are strictly blocked and redirected (`403 Forbidden`).
+  * **Requester Dashboard (`#/dashboard`)**:
+    * **4 Personal Metric Cards**: Real-time counts for `Total Requests`, `In Progress`, `Resolved`, and `Closed` with `[View all]` drill-down links to filtered ticket views.
+    * **Strict Data Isolation**: Displays only tickets submitted by the authenticated requester. Requesters with zero requests see zeroed counters and an encouraging empty state with `+ Create Your First Ticket`.
+    * **Recent Requests List**: Chronological display of recent requests with accessible status and priority badges.
+
+* **UI Hardening & Pagination Overflow Prevention**
+  * **Capped Pagination Bar**: Fixed array expansion across all ticket views (`MyTickets` and `StaffTicketQueue`) by capping visible page buttons to 20 numbers.
+  * **Dynamic Sliding Window with Ellipsis (`...`)**: Displays a centered sliding window as users navigate through higher page numbers (e.g. `... [11..30] ...`), with accessible jump-range ellipsis buttons.
+  * **Responsive Wrap**: Enforced `flex-wrap` layout on pagination controls, eliminating horizontal overflow across desktop, tablet, and mobile viewports.
+
+---
+
+### 2. Design System & Accessibility Hardening
+
+* **Zen Green Aesthetic**: Maintained harmonious forest green tones (`#006B3C`), sage cards, and consistent badge tokens across all new dashboard and action components.
+* **WCAG 2.2 AA Accessibility**: Full contrast compliance, unique element test IDs, accessible aria labels on all interactive buttons and ellipsis controls, and screen-reader-friendly status indicators.
+* **Responsive Breakpoints**: Seamless responsiveness tested across Desktop (&ge;1280px), Tablet (768–1024px), and Mobile (375–812px) viewports with zero horizontal overflow.
+
+---
+
+### 3. Testing & Verification Summary
+
+All Lab 4 deliverables were engineered following Test-Driven Development (TDD) and verified across four automated testing tiers with a 100% pass rate:
+
+| Test Layer | Scope | Framework | Total Tests | Result |
+| :--- | :--- | :--- | :--- | :--- |
+| **Server Unit & Domain Tests** | Action validators, follow-up rules, state transition matrices | Vitest | 46 | **Pass (46/46)** |
+| **Server API Integration Tests** | Actions Taken CRUD, resolution gates, RBAC, staff & requester dashboards, BOLA isolation | Vitest + Supertest | 111 | **Pass (111/111)** |
+| **Client UI Component Tests** | Actions Taken table/modal, staff dashboard, requester dashboard, queue pagination, auth | Vitest + React Testing Library | 115 | **Pass (115/115)** |
+| **Playwright E2E Tests** | Multi-role workflows: Actions lifecycle, resolution gate enforcement, dashboard drill-down | Playwright / Chromium | 2 | **Pass (2/2)** |
+| **Total Automated Tests** | Across all four lab tiers (Labs 1–4 complete regression) | | **274** | **100% Pass** |
+
+* **Visual Artifacts**: 33 high-resolution screenshots generated and organized under [`artifacts/lab-04/screenshots/`](artifacts/lab-04/screenshots/) across five categories:
+  * `staff-dashboard/`: 7 screenshots (overview, metrics, drill-down, triage, RBAC).
+  * `requester-dashboard/`: 5 screenshots (overview, metrics, drill-down, recent tickets, empty state).
+  * `actions-taken/`: 9 screenshots (table, modals, conditional validation, completion, read-only mode).
+  * `ticket-workflow/`: 4 screenshots (permitted transitions, resolution gate block, resolved state, audit timeline).
+  * `responsive/`: 8 screenshots (Desktop, Tablet, and Mobile views across dashboards and actions).
+
+---
+
+### 4. Lab 4 Documentation Directory
+
+Detailed sprint specifications, API schemas, UI definitions, and review records are maintained under [`docs/lab-04/`](docs/lab-04/):
+* [`specification.md`](docs/lab-04/specification.md): Complete sprint specification, business rules, and acceptance criteria.
+* [`api-spec.md`](docs/lab-04/api-spec.md): REST API contracts, dashboard metrics endpoints, Actions Taken DTOs, and error envelopes.
+* [`ui-spec.md`](docs/lab-04/ui-spec.md): UI screen layouts, responsive specifications, and deliverable screenshot inventory.
+* [`tests.md`](docs/lab-04/tests.md): Test strategy, full test inventory, and traceability matrix.
+* [`reviewer.md`](docs/lab-04/reviewer.md): Quality audit log and contract compliance checklist.
+* [`ai_use.md`](docs/lab-04/ai_use.md): AI usage attribution, prompts, and development reflection.
+
