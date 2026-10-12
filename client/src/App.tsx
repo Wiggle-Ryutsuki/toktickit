@@ -12,22 +12,28 @@ import ChangePassword from "./components/ChangePassword.js";
 import StaffTicketQueue from "./components/StaffTicketQueue.js";
 import StaffTicketDetail from "./components/StaffTicketDetail.js";
 import UserManagement from "./components/UserManagement.js";
+import StaffDashboard from "./components/StaffDashboard.js";
+import RequesterDashboard from "./components/RequesterDashboard.js";
 import "./theme.css";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "idle" | "loading" | "success" | "error";
 
-export type ViewType = "tickets" | "create-ticket" | "ticket-detail" | "change-password" | "queue" | "admin";
+export type ViewType = "tickets" | "create-ticket" | "ticket-detail" | "change-password" | "queue" | "admin" | "dashboard";
 
 function AppContent() {
   const auth = useContext(AuthContext);
   const { selectedRequester, isSelectorOpen } = useRequester();
   const [activeView, setActiveView] = useState<ViewType>(() => {
     if (typeof window !== "undefined") {
-      if (window.location.hash.includes("admin")) {
+      const hash = window.location.hash;
+      if (hash.includes("dashboard")) {
+        return "dashboard";
+      }
+      if (hash.includes("admin")) {
         return "admin";
       }
-      if (window.location.hash.includes("queue")) {
+      if (hash.includes("queue")) {
         return "queue";
       }
     }
@@ -42,7 +48,9 @@ function AppContent() {
     const handleHashChange = () => {
       if (typeof window !== "undefined") {
         const hash = window.location.hash;
-        if (hash.includes("admin")) {
+        if (hash.includes("dashboard")) {
+          setActiveView("dashboard");
+        } else if (hash.includes("admin")) {
           setActiveView("admin");
         } else if (hash.includes("queue")) {
           setActiveView("queue");
@@ -60,6 +68,11 @@ function AppContent() {
   useEffect(() => {
     if (!auth?.user) {
       setActiveView("tickets");
+      setSelectedTicketId(null);
+      return;
+    }
+    if (typeof window !== "undefined" && window.location.hash.includes("dashboard")) {
+      setActiveView("dashboard");
       setSelectedTicketId(null);
       return;
     }
@@ -93,6 +106,8 @@ function AppContent() {
         window.location.hash = "#/my-tickets";
       } else if (view === "create-ticket") {
         window.location.hash = "#/create-ticket";
+      } else if (view === "dashboard") {
+        window.location.hash = "#/dashboard";
       }
     }
   };
@@ -145,7 +160,19 @@ function AppContent() {
 
       {(!selectedRequester || isSelectorOpen) && <RequesterSelector />}
 
-      {activeView === "change-password" ? (
+      {activeView === "dashboard" ? (
+        auth?.user && (auth.user.role === "IT_STAFF" || auth.user.role === "ADMINISTRATOR") ? (
+          <StaffDashboard
+            onNavigate={handleNavigate}
+            onViewDetail={handleViewDetail}
+          />
+        ) : (
+          <RequesterDashboard
+            onNavigate={handleNavigate}
+            onViewDetail={handleViewDetail}
+          />
+        )
+      ) : activeView === "change-password" ? (
         <div className="container py-4 d-flex justify-content-center">
           <ChangePassword
             onSuccess={() => setActiveView(auth?.user?.role === "REQUESTER" ? "tickets" : "queue")}

@@ -343,3 +343,31 @@ export async function updateTicketActionApi(ticketId, actionId, payload) {
     }
     return data;
 }
+export async function getRequesterDashboardApi() {
+    const res = await fetch(`${API_URL}/api/v1/dashboard/requester`, {
+        method: "GET",
+        credentials: "include",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}
+export async function getStaffDashboardApi() {
+    const res = await fetch(`${API_URL}/api/v1/dashboard/staff`, {
+        method: "GET",
+        credentials: "include",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`);
+        error.status = res.status;
+        error.code = data?.error?.code;
+        throw error;
+    }
+    return data;
+}

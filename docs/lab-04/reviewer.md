@@ -8,7 +8,7 @@
 |----|--------|------------------|
 | https://github.com/Wiggle-Ryutsuki/toktickit/pull/39 | feature/13-actions-taken-foundation | All good |
 | https://github.com/Wiggle-Ryutsuki/toktickit/pull/40 | feature/14-actions-taken-ui |  |
-| https://github.com/Wiggle-Ryutsuki/toktickit/pull/41 | feature/15-ticket-workflow-resolution-gate |  |
+| https://github.com/Wiggle-Ryutsuki/toktickit/pull/41 | feature/15-ticket-workflow-resolution-gate | Works as intended. |
 | https://github.com/Wiggle-Ryutsuki/toktickit/pull/42 | feature/16-role-dashboards |  |
 
 **Reviewer comment I received:**    

@@ -13,16 +13,22 @@ import ChangePassword from "./components/ChangePassword.js";
 import StaffTicketQueue from "./components/StaffTicketQueue.js";
 import StaffTicketDetail from "./components/StaffTicketDetail.js";
 import UserManagement from "./components/UserManagement.js";
+import StaffDashboard from "./components/StaffDashboard.js";
+import RequesterDashboard from "./components/RequesterDashboard.js";
 import "./theme.css";
 function AppContent() {
     const auth = useContext(AuthContext);
     const { selectedRequester, isSelectorOpen } = useRequester();
     const [activeView, setActiveView] = useState(() => {
         if (typeof window !== "undefined") {
-            if (window.location.hash.includes("admin")) {
+            const hash = window.location.hash;
+            if (hash.includes("dashboard")) {
+                return "dashboard";
+            }
+            if (hash.includes("admin")) {
                 return "admin";
             }
-            if (window.location.hash.includes("queue")) {
+            if (hash.includes("queue")) {
                 return "queue";
             }
         }
@@ -36,7 +42,10 @@ function AppContent() {
         const handleHashChange = () => {
             if (typeof window !== "undefined") {
                 const hash = window.location.hash;
-                if (hash.includes("admin")) {
+                if (hash.includes("dashboard")) {
+                    setActiveView("dashboard");
+                }
+                else if (hash.includes("admin")) {
                     setActiveView("admin");
                 }
                 else if (hash.includes("queue")) {
@@ -56,6 +65,11 @@ function AppContent() {
     useEffect(() => {
         if (!auth?.user) {
             setActiveView("tickets");
+            setSelectedTicketId(null);
+            return;
+        }
+        if (typeof window !== "undefined" && window.location.hash.includes("dashboard")) {
+            setActiveView("dashboard");
             setSelectedTicketId(null);
             return;
         }
@@ -95,6 +109,9 @@ function AppContent() {
             else if (view === "create-ticket") {
                 window.location.hash = "#/create-ticket";
             }
+            else if (view === "dashboard") {
+                window.location.hash = "#/dashboard";
+            }
         }
     };
     const handleViewDetail = (id) => {
@@ -126,7 +143,7 @@ function AppContent() {
             return _jsx(ChangePassword, {});
         }
     }
-    return (_jsxs("div", { className: "min-vh-100 d-flex flex-column pb-5 pb-md-0", style: { backgroundColor: "var(--color-page-bg)" }, children: [_jsx(Navbar, { activeView: activeView, onNavigate: handleNavigate }), (!selectedRequester || isSelectorOpen) && _jsx(RequesterSelector, {}), activeView === "change-password" ? (_jsx("div", { className: "container py-4 d-flex justify-content-center", children: _jsx(ChangePassword, { onSuccess: () => setActiveView(auth?.user?.role === "REQUESTER" ? "tickets" : "queue"), onCancel: () => setActiveView(auth?.user?.role === "REQUESTER" ? "tickets" : "queue") }) })) : activeView === "ticket-detail" && selectedTicketId !== null ? (auth?.user && (auth.user.role === "IT_STAFF" || auth.user.role === "ADMINISTRATOR") ? (_jsx(StaffTicketDetail, { ticketId: selectedTicketId, onBack: () => {
+    return (_jsxs("div", { className: "min-vh-100 d-flex flex-column pb-5 pb-md-0", style: { backgroundColor: "var(--color-page-bg)" }, children: [_jsx(Navbar, { activeView: activeView, onNavigate: handleNavigate }), (!selectedRequester || isSelectorOpen) && _jsx(RequesterSelector, {}), activeView === "dashboard" ? (auth?.user && (auth.user.role === "IT_STAFF" || auth.user.role === "ADMINISTRATOR") ? (_jsx(StaffDashboard, { onNavigate: handleNavigate, onViewDetail: handleViewDetail })) : (_jsx(RequesterDashboard, { onNavigate: handleNavigate, onViewDetail: handleViewDetail }))) : activeView === "change-password" ? (_jsx("div", { className: "container py-4 d-flex justify-content-center", children: _jsx(ChangePassword, { onSuccess: () => setActiveView(auth?.user?.role === "REQUESTER" ? "tickets" : "queue"), onCancel: () => setActiveView(auth?.user?.role === "REQUESTER" ? "tickets" : "queue") }) })) : activeView === "ticket-detail" && selectedTicketId !== null ? (auth?.user && (auth.user.role === "IT_STAFF" || auth.user.role === "ADMINISTRATOR") ? (_jsx(StaffTicketDetail, { ticketId: selectedTicketId, onBack: () => {
                     setSelectedTicketId(null);
                     setActiveView("queue");
                 } })) : (_jsx(RequesterTicketDetail, { ticketId: selectedTicketId, onBack: () => {

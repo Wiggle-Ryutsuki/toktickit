@@ -362,6 +362,23 @@ app.patch("/api/v1/admin/users/:id", ...requireAdmin, updateAdminUser);
 app.post("/api/admin/users/:id/reset-password", ...requireAdmin, resetUserPassword);
 app.post("/api/v1/admin/users/:id/reset-password", ...requireAdmin, resetUserPassword);
 
+// ---------------------------------------------------------------------------
+// Feature 16 — Role-Based Operational Dashboards
+// ---------------------------------------------------------------------------
+import {
+  getRequesterDashboard,
+  getStaffDashboard,
+} from "./controllers/dashboard.controller.js";
+
+const requireStaff = [requireAuth, requireRole("IT_STAFF", "ADMINISTRATOR")];
+
+app.get("/api/dashboard/requester", requireAuth, getRequesterDashboard);
+app.get("/api/v1/dashboard/requester", requireAuth, getRequesterDashboard);
+
+app.get("/api/dashboard/staff", ...requireStaff, getStaffDashboard);
+app.get("/api/v1/dashboard/staff", ...requireStaff, getStaffDashboard);
+
 export default app;
+
 
 

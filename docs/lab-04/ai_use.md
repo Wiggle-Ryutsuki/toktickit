@@ -8,7 +8,7 @@
 | 1 | Review the current branch against the contract and specifications. Report back any inconsistencies. | I check the progress against the constract and specs before pushing. |
 | 2 | Make me a short list about the things I should be checking myself in this feature. | I wanted to make sure I wasn't missing anything when checking the work so I had it list out every new feature it implemented. |
 | 3 | [After pasting an error from the terminal] Why is the file giving errors when the page works fine? | The terminal was still throwing errors so I had to fix it. |
-| 4 |  |  |
+| 4 | The icons in the desktop are not appearing like they're supposed to, fix them. | The IT Staff desktop was not showing icons and messed up the layout a little bit, so I had it fix the problem. |
 | 5 |  |  |
 | 6 |  |  |
 
