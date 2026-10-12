@@ -1,7 +1,12 @@
 import { Request, Response } from "express";
-import { Priority, TicketStatus } from "@prisma/client";
+import { Priority, TicketStatus, ActionStatus, CommentType } from "@prisma/client";
 import { getPrisma } from "../prisma.js";
-import { isValidStatusTransition } from "../utils/status-transition.js";
+import {
+  isValidStatusTransition,
+  isResolutionGateSatisfied,
+  countOpenActions,
+  calculateReopenStatus,
+} from "../utils/status-transition.js";
 import { validateResolutionSummary } from "../utils/validation.js";
 
 function getCorrelationId(): string {
@@ -228,6 +233,19 @@ export async function getTicketDetail(req: Request, res: Response): Promise<Resp
       updatedAt: ticket.updatedAt.toISOString(),
     };
 
+    // Feature-15: Open Actions Warning indicator for Ticket Owner (FR-46, BR-09)
+    if (ticket.requesterResolutionConfirmedAt) {
+      const openActionsCount = await prisma.actionTaken.count({
+        where: {
+          ticketId: ticket.id,
+          status: { in: [ActionStatus.PLANNED, ActionStatus.IN_PROGRESS] },
+        },
+      });
+      responsePayload.hasOpenActionsWarning = openActionsCount > 0;
+    } else {
+      responsePayload.hasOpenActionsWarning = false;
+    }
+
     // Strict boundary: Only add notes property if user is IT Staff or Admin
     if (isStaffOrAdmin && internalNotes) {
       responsePayload.notes = internalNotes;
@@ -318,6 +336,17 @@ export async function updateTicketOperational(req: Request, res: Response): Prom
 
     const { ownerId, itPriority, status, resolutionSummary } = req.body;
 
+    // Recommendation 1 / Section 3.7: Precedence Check - Optimistic Concurrency Version Match
+    if (existingTicket.version !== suppliedVersion) {
+      return res.status(409).json({
+        error: {
+          code: "CONCURRENCY_CONFLICT",
+          message: "Ticket has been modified by another transaction. Please reload.",
+          correlationId,
+        },
+      });
+    }
+
     // Validate ownerId (BR-06)
     if (ownerId !== undefined && ownerId !== null) {
       if (typeof ownerId !== "number" || !Number.isInteger(ownerId)) {
@@ -364,8 +393,9 @@ export async function updateTicketOperational(req: Request, res: Response): Prom
       }
     }
 
-    // Validate status & resolutionSummary (BR-08, BR-09, FR-16)
+    // Validate status & resolutionSummary (BR-08, BR-09, FR-16, FR-43, FR-47, FR-48)
     let validatedResolutionSummary: string | null = existingTicket.resolutionSummary;
+    let targetStatus: TicketStatus | undefined = undefined;
 
     if (status !== undefined) {
       const validStatuses = [
@@ -388,18 +418,32 @@ export async function updateTicketOperational(req: Request, res: Response): Prom
         });
       }
 
-      if (!isValidStatusTransition(existingTicket.status, status)) {
-        return res.status(422).json({
-          error: {
-            code: "INVALID_STATUS_TRANSITION",
-            message: `Cannot transition status from '${existingTicket.status}' to '${status}'.`,
-            correlationId,
-          },
-        });
+      // Check if this is a Reopen transition from RESOLVED, CLOSED, or CANCELLED (BR-11, FR-48, AC-10)
+      const isReopen =
+        existingTicket.status === TicketStatus.RESOLVED ||
+        existingTicket.status === TicketStatus.CLOSED ||
+        existingTicket.status === TicketStatus.CANCELLED;
+
+      const isReopenTarget = status === TicketStatus.IN_PROGRESS || status === TicketStatus.NEW;
+
+      if (isReopen && isReopenTarget) {
+        const effectiveOwnerId = ownerId !== undefined ? ownerId : existingTicket.ownerId;
+        targetStatus = calculateReopenStatus(effectiveOwnerId);
+      } else {
+        if (!isValidStatusTransition(existingTicket.status, status)) {
+          return res.status(422).json({
+            error: {
+              code: "INVALID_STATUS_TRANSITION",
+              message: `Cannot transition status from '${existingTicket.status}' to '${status}'.`,
+              correlationId,
+            },
+          });
+        }
+        targetStatus = status;
       }
 
-      // Mandatory resolutionSummary when moving to RESOLVED or CLOSED
-      if (status === TicketStatus.RESOLVED || status === TicketStatus.CLOSED) {
+      // Mandatory resolutionSummary and Resolution Gate check when moving to RESOLVED or CLOSED (BR-06, BR-07, FR-43, AC-07, AC-08)
+      if (targetStatus === TicketStatus.RESOLVED || targetStatus === TicketStatus.CLOSED) {
         const validation = validateResolutionSummary(resolutionSummary);
         if (!validation.isValid) {
           return res.status(422).json({
@@ -411,6 +455,92 @@ export async function updateTicketOperational(req: Request, res: Response): Prom
           });
         }
         validatedResolutionSummary = validation.trimmed!;
+
+        // Query Actions Taken for ticket to enforce Resolution Gate
+        const actions = await prisma.actionTaken.findMany({
+          where: { ticketId },
+          select: { status: true },
+        });
+
+        if (!isResolutionGateSatisfied(actions)) {
+          const openCount = countOpenActions(actions);
+          return res.status(409).json({
+            error: {
+              code: "TICKET_STATE_CONFLICT",
+              message: "Ticket cannot be resolved while actions taken remain open. Please complete or cancel all actions taken before resolving.",
+              fieldErrors: [
+                {
+                  field: "status",
+                  message: `There are ${openCount} open action(s) taken on this ticket.`,
+                },
+              ],
+              correlationId,
+            },
+          });
+        }
+      } else if (targetStatus === TicketStatus.CANCELLED) {
+        // Cascade Cancellation Reason Validation (BR-10, FR-47, AC-09)
+        const rawReason = req.body.cancellationReason ?? resolutionSummary;
+        if (
+          !rawReason ||
+          typeof rawReason !== "string" ||
+          rawReason.trim().length < 5
+        ) {
+          return res.status(422).json({
+            error: {
+              code: "MISSING_CANCELLATION_REASON",
+              message: "Cancellation reason is required (minimum 5 characters).",
+              correlationId,
+            },
+          });
+        }
+        validatedResolutionSummary = rawReason.trim();
+
+        // Atomically update ticket and cascade cancellation to open actions in a single transaction
+        const [updatedTicket] = await prisma.$transaction([
+          prisma.ticket.update({
+            where: { id: ticketId },
+            data: {
+              status: TicketStatus.CANCELLED,
+              resolutionSummary: validatedResolutionSummary,
+              version: { increment: 1 },
+              ...(ownerId !== undefined ? { ownerId } : {}),
+              ...(itPriority !== undefined ? { itPriority } : {}),
+            },
+            select: {
+              id: true,
+              ticketNo: true,
+              ownerId: true,
+              itPriority: true,
+              status: true,
+              resolutionSummary: true,
+              version: true,
+              updatedAt: true,
+            },
+          }),
+          prisma.actionTaken.updateMany({
+            where: {
+              ticketId,
+              status: { in: [ActionStatus.PLANNED, ActionStatus.IN_PROGRESS] },
+            },
+            data: {
+              status: ActionStatus.CANCELLED,
+              result: `Cancelled due to ticket cancellation: ${validatedResolutionSummary}`,
+              version: { increment: 1 },
+            },
+          }),
+        ]);
+
+        return res.status(200).json({
+          id: updatedTicket.id,
+          ticketNo: updatedTicket.ticketNo,
+          ownerId: updatedTicket.ownerId,
+          itPriority: updatedTicket.itPriority,
+          status: updatedTicket.status,
+          resolutionSummary: updatedTicket.resolutionSummary,
+          version: updatedTicket.version,
+          updatedAt: updatedTicket.updatedAt.toISOString(),
+        });
       }
     } else if (resolutionSummary !== undefined) {
       if (resolutionSummary) {
@@ -441,14 +571,14 @@ export async function updateTicketOperational(req: Request, res: Response): Prom
     if (itPriority !== undefined) {
       updateData.itPriority = itPriority;
     }
-    if (status !== undefined) {
-      updateData.status = status;
+    if (targetStatus !== undefined) {
+      updateData.status = targetStatus;
     }
     if (validatedResolutionSummary !== undefined) {
       updateData.resolutionSummary = validatedResolutionSummary;
     }
 
-    // Atomic conditional update checking version (BR-16)
+    // Atomic conditional update checking version (BR-12, BR-16)
     const updateResult = await prisma.ticket.updateMany({
       where: {
         id: ticketId,
@@ -476,7 +606,7 @@ export async function updateTicketOperational(req: Request, res: Response): Prom
 
       return res.status(409).json({
         error: {
-          code: "CONCURRENCY_CONFLICT",
+          code: "STALE_UPDATE_CONFLICT",
           message: "Ticket has been modified by another transaction. Please reload.",
           correlationId,
         },
@@ -522,7 +652,7 @@ export async function updateTicketOperational(req: Request, res: Response): Prom
 
 /**
  * POST /api/v1/tickets/:id/resolve-indication
- * Records Requester confirmation that their issue appears resolved without mutating formal ticket status (FR-20, BR-05).
+ * Records Requester confirmation that their issue appears resolved without mutating formal ticket status (FR-20, BR-05, FR-45, FR-46, BR-08, BR-09).
  * Only accessible to the Requester who owns the ticket.
  */
 export async function indicateResolution(req: Request, res: Response): Promise<Response> {
@@ -545,7 +675,7 @@ export async function indicateResolution(req: Request, res: Response): Promise<R
     const prisma = getPrisma();
     const ticket = await prisma.ticket.findUnique({
       where: { id: ticketId },
-      select: { id: true, requesterId: true, status: true },
+      select: { id: true, ticketNo: true, requesterId: true, status: true, version: true },
     });
 
     if (!ticket) {
@@ -591,6 +721,31 @@ export async function indicateResolution(req: Request, res: Response): Promise<R
       });
     }
 
+    // Check open actions (FR-46, BR-09, Contract Sec 3.4)
+    const openActionsCount = await prisma.actionTaken.count({
+      where: {
+        ticketId,
+        status: { in: [ActionStatus.PLANNED, ActionStatus.IN_PROGRESS] },
+      },
+    });
+    const hasOpenActionsWarning = openActionsCount > 0;
+
+    // Optional Note & Public Comment handling (Contract Sec 3.4, 4.2 & Recommendation 3)
+    const rawNote = req.body?.note;
+    const commentContent =
+      rawNote && typeof rawNote === "string" && rawNote.trim().length > 0
+        ? rawNote.trim()
+        : "Requester confirmed that the problem appears resolved.";
+
+    await prisma.ticketComment.create({
+      data: {
+        ticketId,
+        authorId: callerId,
+        type: CommentType.PUBLIC,
+        content: commentContent,
+      },
+    });
+
     // Idempotently record resolution confirmation
     const updated = await prisma.ticket.update({
       where: { id: ticketId },
@@ -598,13 +753,27 @@ export async function indicateResolution(req: Request, res: Response): Promise<R
         requesterResolutionConfirmedAt: new Date(),
       },
       select: {
+        id: true,
+        ticketNo: true,
+        status: true,
+        version: true,
         requesterResolutionConfirmedAt: true,
       },
     });
 
     return res.status(200).json({
+      success: true,
       message: "Resolution indication recorded.",
       requesterResolutionConfirmedAt: updated.requesterResolutionConfirmedAt!.toISOString(),
+      hasOpenActionsWarning,
+      ticket: {
+        id: updated.id,
+        ticketNo: updated.ticketNo,
+        status: updated.status,
+        requesterResolutionConfirmedAt: updated.requesterResolutionConfirmedAt!.toISOString(),
+        hasOpenActionsWarning,
+        version: updated.version,
+      },
     });
   } catch (err) {
     console.error("Error recording resolution indication:", err);

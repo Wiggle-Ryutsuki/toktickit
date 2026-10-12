@@ -132,15 +132,18 @@ export async function updateTicketOperationalApi(id, payload) {
         const error = new Error(data?.error?.message || `HTTP ${res.status}`);
         error.status = res.status;
         error.code = data?.error?.code;
+        error.fieldErrors = data?.error?.fieldErrors;
+        error.correlationId = data?.error?.correlationId;
         throw error;
     }
     return data;
 }
-export async function indicateResolutionApi(id) {
+export async function indicateResolutionApi(id, payload) {
     const res = await fetch(`${API_URL}/api/v1/tickets/${id}/resolve-indication`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
+        body: JSON.stringify(payload || {}),
     });
     const data = await res.json();
     if (!res.ok) {
