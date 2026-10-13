@@ -82,5 +82,27 @@ test.describe("Feature-16: Role-Based Operational Dashboards (E2E-04)", () => {
     // 12. Click drill-down on In Progress card to view filtered tickets
     await page.getByTestId("drill-down-link-in-progress").click();
     await expect(page).toHaveURL(/status=IN_PROGRESS/);
+    await expect(page.getByTestId("status-filter")).toHaveValue("IN_PROGRESS");
+
+    // 13. Return to Dashboard and test My Open Tickets drill-down
+    await requesterDashboardLink.click();
+    await expect(page.getByTestId("drill-down-link-my-open")).toBeVisible();
+    await page.getByTestId("drill-down-link-my-open").click();
+    await expect(page).toHaveURL(/status=OPEN/);
+    await expect(page.getByTestId("status-filter")).toHaveValue("OPEN");
+
+    // 14. Return to Dashboard and test Resolved drill-down
+    await requesterDashboardLink.click();
+    await expect(page.getByTestId("drill-down-link-resolved")).toBeVisible();
+    await page.getByTestId("drill-down-link-resolved").click();
+    await expect(page).toHaveURL(/status=RESOLVED/);
+    await expect(page.getByTestId("status-filter")).toHaveValue("RESOLVED");
+
+    // 15. Return to Dashboard and test Closed drill-down
+    await requesterDashboardLink.click();
+    await expect(page.getByTestId("drill-down-link-closed")).toBeVisible();
+    await page.getByTestId("drill-down-link-closed").click();
+    await expect(page).toHaveURL(/status=CLOSED/);
+    await expect(page.getByTestId("status-filter")).toHaveValue("CLOSED");
   });
 });

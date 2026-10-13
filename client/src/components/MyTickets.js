@@ -4,13 +4,31 @@ import { useRequester } from "../context/RequesterContext.js";
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 export default function MyTickets({ onNavigateCreate, onViewDetail }) {
     const { selectedRequester } = useRequester();
+    // Helper to read initial status from URL search or hash
+    const getInitialStatus = () => {
+        if (typeof window === "undefined")
+            return "ALL";
+        const searchParams = new URLSearchParams(window.location.search);
+        const searchStatus = searchParams.get("status");
+        if (searchStatus)
+            return searchStatus.toUpperCase();
+        const hash = window.location.hash;
+        const hashQueryIndex = hash.indexOf("?");
+        if (hashQueryIndex !== -1) {
+            const hashParams = new URLSearchParams(hash.substring(hashQueryIndex));
+            const hashStatus = hashParams.get("status");
+            if (hashStatus)
+                return hashStatus.toUpperCase();
+        }
+        return "ALL";
+    };
     // Search & Filter state
     const [searchInput, setSearchInput] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
     const [categoryId, setCategoryId] = useState("ALL");
     const [requestedPriority, setRequestedPriority] = useState("ALL");
     const [itPriority, setItPriority] = useState("ALL");
-    const [status, setStatus] = useState("ALL");
+    const [status, setStatus] = useState(getInitialStatus);
     // Sorting state
     const [sortBy, setSortBy] = useState("createdAt");
     const [sortOrder, setSortOrder] = useState("desc");
@@ -38,18 +56,20 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }) {
         return () => clearTimeout(handler);
     }, [searchInput]);
     // Context Switch Invariant (BR-16): reset all search/filters/page when requester changes
-    const prevRequesterIdRef = useRef(null);
+    const prevRequesterIdRef = useRef(selectedRequester?.id ?? null);
     useEffect(() => {
-        if (selectedRequester && prevRequesterIdRef.current !== selectedRequester.id) {
+        if (selectedRequester) {
+            if (prevRequesterIdRef.current !== null && prevRequesterIdRef.current !== selectedRequester.id) {
+                setSearchInput("");
+                setDebouncedSearch("");
+                setCategoryId("ALL");
+                setRequestedPriority("ALL");
+                setItPriority("ALL");
+                setStatus("ALL");
+                setPage(1);
+                setRequesterTotalTickets(null);
+            }
             prevRequesterIdRef.current = selectedRequester.id;
-            setSearchInput("");
-            setDebouncedSearch("");
-            setCategoryId("ALL");
-            setRequestedPriority("ALL");
-            setItPriority("ALL");
-            setStatus("ALL");
-            setPage(1);
-            setRequesterTotalTickets(null);
         }
     }, [selectedRequester]);
     // Fetch categories once when requester is active
@@ -138,6 +158,19 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }) {
         itPriority,
         status,
     ]);
+    // Keep status filter in sync if user navigates back/forward or hash changes
+    useEffect(() => {
+        const handleUrlChange = () => {
+            const newStatus = getInitialStatus();
+            setStatus(newStatus);
+        };
+        window.addEventListener("popstate", handleUrlChange);
+        window.addEventListener("hashchange", handleUrlChange);
+        return () => {
+            window.removeEventListener("popstate", handleUrlChange);
+            window.removeEventListener("hashchange", handleUrlChange);
+        };
+    }, []);
     useEffect(() => {
         fetchTickets();
     }, [fetchTickets]);
@@ -161,6 +194,9 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }) {
         setItPriority("ALL");
         setStatus("ALL");
         setPage(1);
+        if (typeof window !== "undefined") {
+            window.history.pushState(null, "", `${window.location.pathname}#/my-tickets`);
+        }
     }
     const hasActiveFilters = Boolean(searchInput.trim()) ||
         categoryId !== "ALL" ||
@@ -240,7 +276,7 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }) {
                                 }, "aria-label": "Filter by IT Priority", children: [_jsx("option", { value: "ALL", children: "All IT Priorities" }), _jsx("option", { value: "LOW", children: "Low" }), _jsx("option", { value: "MEDIUM", children: "Medium" }), _jsx("option", { value: "HIGH", children: "High" }), _jsx("option", { value: "URGENT", children: "Urgent" })] }) }), _jsx("div", { className: "col-6 col-md-4 col-lg-2", children: _jsxs("select", { className: "form-select", value: status, onChange: (e) => {
                                     setStatus(e.target.value);
                                     setPage(1);
-                                }, "aria-label": "Filter by Status", children: [_jsx("option", { value: "ALL", children: "All Statuses" }), _jsx("option", { value: "NEW", children: "New" }), _jsx("option", { value: "ASSIGNED", children: "Assigned" }), _jsx("option", { value: "IN_PROGRESS", children: "In Progress" }), _jsx("option", { value: "PENDING_REQUESTER", children: "Pending Requester" }), _jsx("option", { value: "RESOLVED", children: "Resolved" }), _jsx("option", { value: "CLOSED", children: "Closed" }), _jsx("option", { value: "CANCELLED", children: "Cancelled" })] }) }), _jsx("div", { className: "col-12 col-md-4 col-lg-2 text-md-end", children: _jsx("button", { type: "button", className: "btn btn-outline-secondary w-100", onClick: handleClearFilters, disabled: !hasActiveFilters, children: "Clear Filters" }) })] }) }), apiError && (_jsxs("div", { className: "alert alert-danger d-flex align-items-center justify-content-between p-3 mb-4", role: "alert", children: [_jsxs("div", { children: [_jsx("strong", { children: "Unable to load tickets from server." }), " Please check your connection and try again."] }), _jsx("button", { type: "button", className: "btn btn-sm btn-outline-danger", onClick: fetchTickets, children: "Retry" })] })), isLoading && (_jsx("div", { className: "zen-card p-4 mb-4", children: _jsx("div", { className: "d-flex flex-column gap-3", children: [1, 2, 3, 4].map((i) => (_jsx("div", { className: "zen-skeleton-bar w-100", style: { height: "2.5rem" } }, i))) }) })), !isLoading && !apiError && (_jsxs(_Fragment, { children: [tickets.length === 0 && !hasActiveFilters && (requesterTotalTickets === 0 || pagination.totalItems === 0) && (_jsxs("div", { className: "zen-card text-center p-5 mb-4", "data-testid": "empty-tickets-state", children: [_jsx("div", { style: { fontSize: "3rem" }, className: "mb-2", children: "\uD83D\uDCC2" }), _jsx("h2", { className: "h5 fw-bold mb-2", children: "No tickets submitted yet" }), _jsx("p", { className: "text-muted small mb-4 mx-auto", style: { maxWidth: 460 }, children: "You have not created any IT support tickets. Need help with hardware, software, or account access?" }), _jsx("button", { type: "button", className: "btn btn-zen-primary", onClick: onNavigateCreate, children: "+ Create Ticket" })] })), tickets.length === 0 && hasActiveFilters && (_jsxs("div", { className: "zen-card text-center p-5 mb-4", "data-testid": "no-results-state", children: [_jsx("div", { style: { fontSize: "3rem" }, className: "mb-2", children: "\uD83D\uDD0E" }), _jsx("h2", { className: "h5 fw-bold mb-2", children: "No matching tickets found" }), _jsx("p", { className: "text-muted small mb-4 mx-auto", style: { maxWidth: 460 }, children: "We couldn't find any tickets matching your search criteria. Try adjusting your search term or clearing your filters." }), _jsx("button", { type: "button", className: "btn btn-zen-secondary", onClick: handleClearFilters, children: "Clear Filters" })] })), tickets.length > 0 && (_jsxs(_Fragment, { children: [_jsx("div", { className: "d-none d-md-block zen-table-container mb-4 table-responsive", children: _jsxs("table", { className: "zen-table table align-middle", "data-testid": "tickets-table", children: [_jsx("thead", { children: _jsxs("tr", { children: [_jsxs("th", { className: "sortable", onClick: () => handleSort("ticketNo"), style: { width: "12%" }, children: ["Ticket No ", sortBy === "ticketNo" ? (sortOrder === "asc" ? "▲" : "▼") : ""] }), _jsxs("th", { className: "sortable", onClick: () => handleSort("createdAt"), style: { width: "11%" }, children: ["Created Date ", sortBy === "createdAt" ? (sortOrder === "asc" ? "▲" : "▼") : ""] }), _jsx("th", { style: { width: "20%" }, children: "Summary" }), _jsx("th", { style: { width: "10%" }, children: "Category" }), _jsx("th", { style: { width: "9%" }, children: "Req. Priority" }), _jsx("th", { style: { width: "9%" }, children: "IT Priority" }), _jsx("th", { style: { width: "9%" }, children: "Status" }), _jsx("th", { style: { width: "9%" }, children: "Ticket Owner" }), _jsxs("th", { className: "sortable", onClick: () => handleSort("updatedAt"), style: { width: "10%" }, children: ["Last Updated ", sortBy === "updatedAt" ? (sortOrder === "asc" ? "▲" : "▼") : ""] }), _jsx("th", { className: "text-end", style: { width: "7%" }, children: "Actions" })] }) }), _jsx("tbody", { children: tickets.map((t) => (_jsxs("tr", { style: { cursor: "pointer" }, onClick: () => onViewDetail?.(t.id), children: [_jsx("td", { className: "fw-semibold", style: { color: "var(--color-primary-green)" }, children: t.ticketNo }), _jsx("td", { className: "text-muted", children: formatDate(t.createdAt) }), _jsx("td", { className: "fw-medium text-dark", children: t.summary }), _jsx("td", { children: _jsx("span", { className: "badge bg-light text-dark border", children: t.categoryName }) }), _jsx("td", { children: _jsx("span", { className: `badge ${getPriorityBadgeClass(t.requestedPriority)}`, children: formatPriorityLabel(t.requestedPriority) }) }), _jsx("td", { children: _jsx("span", { className: `badge ${getPriorityBadgeClass(t.itPriority)}`, children: formatPriorityLabel(t.itPriority) }) }), _jsx("td", { children: _jsx("span", { className: `badge ${getStatusBadgeClass(t.status)}`, children: formatStatusLabel(t.status) }) }), _jsx("td", { className: "text-muted", children: t.ticketOwner ?? "—" }), _jsx("td", { className: "text-muted", children: formatDate(t.updatedAt) }), _jsx("td", { className: "text-end", children: _jsx("button", { type: "button", className: "btn btn-sm btn-link text-decoration-none p-0", onClick: (e) => {
+                                }, "aria-label": "Filter by Status", "data-testid": "status-filter", children: [_jsx("option", { value: "ALL", children: "All Statuses" }), _jsx("option", { value: "OPEN", children: "Open Tickets" }), _jsx("option", { value: "NEW", children: "New" }), _jsx("option", { value: "ASSIGNED", children: "Assigned" }), _jsx("option", { value: "IN_PROGRESS", children: "In Progress" }), _jsx("option", { value: "PENDING_REQUESTER", children: "Pending Requester" }), _jsx("option", { value: "RESOLVED", children: "Resolved" }), _jsx("option", { value: "CLOSED", children: "Closed" }), _jsx("option", { value: "CANCELLED", children: "Cancelled" })] }) }), _jsx("div", { className: "col-12 col-md-4 col-lg-2 text-md-end", children: _jsx("button", { type: "button", className: "btn btn-outline-secondary w-100", onClick: handleClearFilters, disabled: !hasActiveFilters, children: "Clear Filters" }) })] }) }), apiError && (_jsxs("div", { className: "alert alert-danger d-flex align-items-center justify-content-between p-3 mb-4", role: "alert", children: [_jsxs("div", { children: [_jsx("strong", { children: "Unable to load tickets from server." }), " Please check your connection and try again."] }), _jsx("button", { type: "button", className: "btn btn-sm btn-outline-danger", onClick: fetchTickets, children: "Retry" })] })), isLoading && (_jsx("div", { className: "zen-card p-4 mb-4", children: _jsx("div", { className: "d-flex flex-column gap-3", children: [1, 2, 3, 4].map((i) => (_jsx("div", { className: "zen-skeleton-bar w-100", style: { height: "2.5rem" } }, i))) }) })), !isLoading && !apiError && (_jsxs(_Fragment, { children: [tickets.length === 0 && !hasActiveFilters && (requesterTotalTickets === 0 || pagination.totalItems === 0) && (_jsxs("div", { className: "zen-card text-center p-5 mb-4", "data-testid": "empty-tickets-state", children: [_jsx("div", { style: { fontSize: "3rem" }, className: "mb-2", children: "\uD83D\uDCC2" }), _jsx("h2", { className: "h5 fw-bold mb-2", children: "No tickets submitted yet" }), _jsx("p", { className: "text-muted small mb-4 mx-auto", style: { maxWidth: 460 }, children: "You have not created any IT support tickets. Need help with hardware, software, or account access?" }), _jsx("button", { type: "button", className: "btn btn-zen-primary", onClick: onNavigateCreate, children: "+ Create Ticket" })] })), tickets.length === 0 && hasActiveFilters && (_jsxs("div", { className: "zen-card text-center p-5 mb-4", "data-testid": "no-results-state", children: [_jsx("div", { style: { fontSize: "3rem" }, className: "mb-2", children: "\uD83D\uDD0E" }), _jsx("h2", { className: "h5 fw-bold mb-2", children: "No matching tickets found" }), _jsx("p", { className: "text-muted small mb-4 mx-auto", style: { maxWidth: 460 }, children: "We couldn't find any tickets matching your search criteria. Try adjusting your search term or clearing your filters." }), _jsx("button", { type: "button", className: "btn btn-zen-secondary", onClick: handleClearFilters, children: "Clear Filters" })] })), tickets.length > 0 && (_jsxs(_Fragment, { children: [_jsx("div", { className: "d-none d-md-block zen-table-container mb-4 table-responsive", children: _jsxs("table", { className: "zen-table table align-middle", "data-testid": "tickets-table", children: [_jsx("thead", { children: _jsxs("tr", { children: [_jsxs("th", { className: "sortable", onClick: () => handleSort("ticketNo"), style: { width: "12%" }, children: ["Ticket No ", sortBy === "ticketNo" ? (sortOrder === "asc" ? "▲" : "▼") : ""] }), _jsxs("th", { className: "sortable", onClick: () => handleSort("createdAt"), style: { width: "11%" }, children: ["Created Date ", sortBy === "createdAt" ? (sortOrder === "asc" ? "▲" : "▼") : ""] }), _jsx("th", { style: { width: "20%" }, children: "Summary" }), _jsx("th", { style: { width: "10%" }, children: "Category" }), _jsx("th", { style: { width: "9%" }, children: "Req. Priority" }), _jsx("th", { style: { width: "9%" }, children: "IT Priority" }), _jsx("th", { style: { width: "9%" }, children: "Status" }), _jsx("th", { style: { width: "9%" }, children: "Ticket Owner" }), _jsxs("th", { className: "sortable", onClick: () => handleSort("updatedAt"), style: { width: "10%" }, children: ["Last Updated ", sortBy === "updatedAt" ? (sortOrder === "asc" ? "▲" : "▼") : ""] }), _jsx("th", { className: "text-end", style: { width: "7%" }, children: "Actions" })] }) }), _jsx("tbody", { children: tickets.map((t) => (_jsxs("tr", { style: { cursor: "pointer" }, onClick: () => onViewDetail?.(t.id), children: [_jsx("td", { className: "fw-semibold", style: { color: "var(--color-primary-green)" }, children: t.ticketNo }), _jsx("td", { className: "text-muted", children: formatDate(t.createdAt) }), _jsx("td", { className: "fw-medium text-dark", children: t.summary }), _jsx("td", { children: _jsx("span", { className: "badge bg-light text-dark border", children: t.categoryName }) }), _jsx("td", { children: _jsx("span", { className: `badge ${getPriorityBadgeClass(t.requestedPriority)}`, children: formatPriorityLabel(t.requestedPriority) }) }), _jsx("td", { children: _jsx("span", { className: `badge ${getPriorityBadgeClass(t.itPriority)}`, children: formatPriorityLabel(t.itPriority) }) }), _jsx("td", { children: _jsx("span", { className: `badge ${getStatusBadgeClass(t.status)}`, children: formatStatusLabel(t.status) }) }), _jsx("td", { className: "text-muted", children: t.ticketOwner ?? "—" }), _jsx("td", { className: "text-muted", children: formatDate(t.updatedAt) }), _jsx("td", { className: "text-end", children: _jsx("button", { type: "button", className: "btn btn-sm btn-link text-decoration-none p-0", onClick: (e) => {
                                                                 e.stopPropagation();
                                                                 onViewDetail?.(t.id);
                                                             }, children: "Details \u2192" }) })] }, t.id))) })] }) }), _jsx("div", { className: "d-md-none mb-4", children: tickets.map((t) => (_jsxs("div", { className: "zen-ticket-card", onClick: () => onViewDetail?.(t.id), style: { cursor: "pointer" }, children: [_jsxs("div", { className: "d-flex justify-content-between align-items-center mb-2", children: [_jsx("span", { className: "fw-bold", style: { color: "var(--color-primary-green)" }, children: t.ticketNo }), _jsx("span", { className: `badge ${getStatusBadgeClass(t.status)}`, children: formatStatusLabel(t.status) })] }), _jsx("div", { className: "fw-semibold mb-2", children: t.summary }), _jsxs("div", { className: "d-flex flex-wrap gap-2 align-items-center text-muted small mb-3", children: [_jsx("span", { className: "badge bg-light text-dark border", children: t.categoryName }), _jsx("span", { className: `badge ${getPriorityBadgeClass(t.requestedPriority)}`, children: formatPriorityLabel(t.requestedPriority) }), _jsx("span", { children: "\u2022" }), _jsxs("span", { children: ["Owner: ", t.ticketOwner ?? "—"] }), _jsx("span", { children: "\u2022" }), _jsx("span", { children: formatDate(t.createdAt) })] }), _jsxs("div", { className: "d-flex justify-content-between align-items-center border-top pt-2", children: [_jsxs("span", { className: "text-muted small", children: ["Updated ", formatDate(t.updatedAt)] }), _jsx("button", { type: "button", className: "btn btn-sm btn-link text-decoration-none p-0", onClick: (e) => {

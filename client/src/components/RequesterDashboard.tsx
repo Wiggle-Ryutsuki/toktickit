@@ -154,12 +154,17 @@ export default function RequesterDashboard({ onNavigate, onViewDetail }: Request
         {/* Card 1: My Open Tickets */}
         <div className="col-12 col-sm-6 col-md-3">
           <div
-            className="card h-100 p-3 shadow-sm"
+            className="card h-100 p-3 shadow-sm cursor-pointer dashboard-metric-card"
             style={{
               borderRadius: "10px",
               border: "1px solid var(--color-border-subtle, #DDE5E1)",
+              cursor: "pointer",
             }}
+            tabIndex={0}
+            role="button"
             data-testid="metric-card-my-open"
+            onClick={() => navigateToTickets("OPEN")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigateToTickets("OPEN")}
           >
             <div className="d-flex justify-content-between align-items-center mb-1">
               <span className="text-muted small fw-semibold">My Open Tickets</span>
@@ -170,12 +175,13 @@ export default function RequesterDashboard({ onNavigate, onViewDetail }: Request
             </div>
             <div>
               <a
-                href="#/my-tickets"
+                href="#/my-tickets?status=OPEN"
                 className="text-decoration-none small fw-semibold"
                 style={{ color: "var(--color-secondary-green, #0B7A46)" }}
                 onClick={(e) => {
                   e.preventDefault();
-                  navigateToTickets();
+                  e.stopPropagation();
+                  navigateToTickets("OPEN");
                 }}
                 data-testid="drill-down-link-my-open"
               >
@@ -188,12 +194,17 @@ export default function RequesterDashboard({ onNavigate, onViewDetail }: Request
         {/* Card 2: In Progress */}
         <div className="col-12 col-sm-6 col-md-3">
           <div
-            className="card h-100 p-3 shadow-sm"
+            className="card h-100 p-3 shadow-sm cursor-pointer dashboard-metric-card"
             style={{
               borderRadius: "10px",
               border: "1px solid var(--color-border-subtle, #DDE5E1)",
+              cursor: "pointer",
             }}
+            tabIndex={0}
+            role="button"
             data-testid="metric-card-in-progress"
+            onClick={() => navigateToTickets("IN_PROGRESS")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigateToTickets("IN_PROGRESS")}
           >
             <div className="d-flex justify-content-between align-items-center mb-1">
               <span className="text-muted small fw-semibold">In Progress</span>
@@ -209,6 +220,7 @@ export default function RequesterDashboard({ onNavigate, onViewDetail }: Request
                 style={{ color: "var(--color-secondary-green, #0B7A46)" }}
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   navigateToTickets("IN_PROGRESS");
                 }}
                 data-testid="drill-down-link-in-progress"
@@ -222,12 +234,17 @@ export default function RequesterDashboard({ onNavigate, onViewDetail }: Request
         {/* Card 3: Resolved */}
         <div className="col-12 col-sm-6 col-md-3">
           <div
-            className="card h-100 p-3 shadow-sm"
+            className="card h-100 p-3 shadow-sm cursor-pointer dashboard-metric-card"
             style={{
               borderRadius: "10px",
               border: "1px solid var(--color-border-subtle, #DDE5E1)",
+              cursor: "pointer",
             }}
+            tabIndex={0}
+            role="button"
             data-testid="metric-card-resolved"
+            onClick={() => navigateToTickets("RESOLVED")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigateToTickets("RESOLVED")}
           >
             <div className="d-flex justify-content-between align-items-center mb-1">
               <span className="text-muted small fw-semibold">Resolved</span>
@@ -243,6 +260,7 @@ export default function RequesterDashboard({ onNavigate, onViewDetail }: Request
                 style={{ color: "var(--color-secondary-green, #0B7A46)" }}
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   navigateToTickets("RESOLVED");
                 }}
                 data-testid="drill-down-link-resolved"
@@ -256,12 +274,17 @@ export default function RequesterDashboard({ onNavigate, onViewDetail }: Request
         {/* Card 4: Closed */}
         <div className="col-12 col-sm-6 col-md-3">
           <div
-            className="card h-100 p-3 shadow-sm"
+            className="card h-100 p-3 shadow-sm cursor-pointer dashboard-metric-card"
             style={{
               borderRadius: "10px",
               border: "1px solid var(--color-border-subtle, #DDE5E1)",
+              cursor: "pointer",
             }}
+            tabIndex={0}
+            role="button"
             data-testid="metric-card-closed"
+            onClick={() => navigateToTickets("CLOSED")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigateToTickets("CLOSED")}
           >
             <div className="d-flex justify-content-between align-items-center mb-1">
               <span className="text-muted small fw-semibold">Closed</span>
@@ -277,6 +300,7 @@ export default function RequesterDashboard({ onNavigate, onViewDetail }: Request
                 style={{ color: "var(--color-secondary-green, #0B7A46)" }}
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   navigateToTickets("CLOSED");
                 }}
                 data-testid="drill-down-link-closed"

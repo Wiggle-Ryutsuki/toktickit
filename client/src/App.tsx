@@ -103,7 +103,11 @@ function AppContent() {
       } else if (view === "queue") {
         window.location.hash = "#/queue";
       } else if (view === "tickets") {
-        window.location.hash = "#/my-tickets";
+        if (window.location.search) {
+          window.location.hash = `#/my-tickets${window.location.search}`;
+        } else {
+          window.location.hash = "#/my-tickets";
+        }
       } else if (view === "create-ticket") {
         window.location.hash = "#/create-ticket";
       } else if (view === "dashboard") {

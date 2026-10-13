@@ -91,6 +91,7 @@ describe("RequesterDashboard Component (UI-19)", () => {
             const openLink = await screen.findByTestId("drill-down-link-my-open");
             fireEvent.click(openLink);
             expect(mockNavigate).toHaveBeenCalledWith("tickets");
+            expect(window.location.search).toContain("status=OPEN");
             const inProgressLink = screen.getByTestId("drill-down-link-in-progress");
             fireEvent.click(inProgressLink);
             expect(mockNavigate).toHaveBeenCalledWith("tickets");
