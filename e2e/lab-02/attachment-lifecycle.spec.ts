@@ -35,6 +35,18 @@ test.describe("E2E-02: Attachment Lifecycle Flow", () => {
     // 1. Visit root page and select Jennifer Anderson if modal appears
     await page.goto("/");
 
+    // Wait for auth resolution (either login page or authenticated badge/modal becomes visible)
+    await page.waitForSelector('[data-testid="email-input"], .zen-user-badge, #requester-modal-title', { timeout: 10000 });
+
+    // If on login page (Lab 3+ authentication active), log in as Jennifer Anderson
+    const emailInput = page.getByTestId("email-input");
+    if (await emailInput.isVisible()) {
+      await emailInput.fill("jennifer.anderson@kmutt.ac.th");
+      await page.getByTestId("password-input").fill("Password123!");
+      await page.getByTestId("login-submit-btn").click();
+      await expect(page.locator('[data-testid="create-ticket-btn"]').first()).toBeVisible({ timeout: 10000 });
+    }
+
     const modalTitle = page.locator("#requester-modal-title");
     if (await modalTitle.isVisible()) {
       const select = page.locator("#requester-select");

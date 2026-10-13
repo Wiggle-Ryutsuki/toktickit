@@ -228,4 +228,45 @@ describe("My Tickets Screen (UI-05, UI-06)", () => {
             expect(within(table).getByText("TKT-2026-00001")).toBeInTheDocument();
         });
     });
+    it("caps pagination bar at 20 pages with ellipsis and dynamic incrementing window when totalPages exceeds 20", async () => {
+        vi.stubGlobal("fetch", async (url) => {
+            const u = String(url);
+            if (u.includes("/api/requesters")) {
+                return { ok: true, json: async () => [mockActiveRequester1] };
+            }
+            if (u.includes("/api/categories")) {
+                return { ok: true, json: async () => mockCategories };
+            }
+            if (u.includes("/api/tickets")) {
+                return {
+                    ok: true,
+                    json: async () => ({
+                        data: mockTicketsUser1,
+                        pagination: { totalItems: 400, totalPages: 40, currentPage: 1, limit: 10 },
+                    }),
+                };
+            }
+            return { ok: true, json: async () => ({}) };
+        });
+        renderComponent();
+        await waitFor(() => {
+            expect(screen.getByTestId("tickets-table")).toBeInTheDocument();
+        });
+        // Verify exactly 20 numbered page buttons are shown initially (1 to 20)
+        for (let i = 1; i <= 20; i++) {
+            expect(screen.getByRole("button", { name: `Page ${i}` })).toBeInTheDocument();
+        }
+        // Page 21 should NOT be in the initial 20-page window
+        expect(screen.queryByRole("button", { name: "Page 21" })).not.toBeInTheDocument();
+        // Verify trailing ellipsis exists
+        const nextEllipsis = screen.getByRole("button", { name: /Next page range/i });
+        expect(nextEllipsis).toBeInTheDocument();
+        // Clicking trailing ellipsis jumps to page 21 and increments window
+        fireEvent.click(nextEllipsis);
+        await waitFor(() => {
+            expect(screen.getByRole("button", { name: "Page 21" })).toBeInTheDocument();
+        });
+        // Leading ellipsis now appears
+        expect(screen.getByRole("button", { name: /Previous page range/i })).toBeInTheDocument();
+    });
 });

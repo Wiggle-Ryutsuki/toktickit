@@ -3,7 +3,7 @@ import { AuthContext } from "../context/AuthContext.js";
 import { useRequester } from "../context/RequesterContext.js";
 
 export interface NavbarProps {
-  activeView?: "tickets" | "create-ticket" | "ticket-detail" | "change-password" | "queue" | "admin";
+  activeView?: "tickets" | "create-ticket" | "ticket-detail" | "change-password" | "queue" | "admin" | "dashboard";
   onNavigate?: (view: any) => void;
 }
 
@@ -35,17 +35,17 @@ export default function Navbar({ activeView = "tickets", onNavigate }: NavbarPro
 
   const activeUser = auth?.user
     ? {
-        displayName: auth.user.displayName,
-        email: auth.user.email,
-        role: auth.user.role,
-      }
+      displayName: auth.user.displayName,
+      email: auth.user.email,
+      role: auth.user.role,
+    }
     : selectedRequester
-    ? {
+      ? {
         displayName: selectedRequester.displayName,
         email: selectedRequester.email,
         role: selectedRequester.role,
       }
-    : null;
+      : null;
 
   const handleLogout = async () => {
     if (auth?.logout) {
@@ -101,6 +101,17 @@ export default function Navbar({ activeView = "tickets", onNavigate }: NavbarPro
               {(!activeUser || activeUser.role === "REQUESTER") && (
                 <>
                   <a
+                    className={`nav-link text-decoration-none ${activeView === "dashboard" ? "active" : ""}`}
+                    href="#/dashboard"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onNavigate?.("dashboard");
+                    }}
+                    data-testid="nav-dashboard-link"
+                  >
+                    Dashboard
+                  </a>
+                  <a
                     className={`nav-link text-decoration-none ${activeView === "tickets" ? "active" : ""}`}
                     href="#/my-tickets"
                     onClick={(e) => {
@@ -126,6 +137,17 @@ export default function Navbar({ activeView = "tickets", onNavigate }: NavbarPro
               {activeUser?.role === "IT_STAFF" && (
                 <>
                   <a
+                    className={`nav-link text-decoration-none ${activeView === "dashboard" ? "active" : ""}`}
+                    href="#/dashboard"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onNavigate?.("dashboard");
+                    }}
+                    data-testid="nav-dashboard-link"
+                  >
+                    Dashboard
+                  </a>
+                  <a
                     className={`nav-link text-decoration-none ${activeView === "queue" ? "active" : ""}`}
                     href="#/queue"
                     onClick={(e) => {
@@ -150,6 +172,17 @@ export default function Navbar({ activeView = "tickets", onNavigate }: NavbarPro
 
               {activeUser?.role === "ADMINISTRATOR" && (
                 <>
+                  <a
+                    className={`nav-link text-decoration-none ${activeView === "dashboard" ? "active" : ""}`}
+                    href="#/dashboard"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onNavigate?.("dashboard");
+                    }}
+                    data-testid="nav-dashboard-link"
+                  >
+                    Dashboard
+                  </a>
                   <a
                     className={`nav-link text-decoration-none ${activeView === "admin" ? "active" : ""}`}
                     href="#/admin/users"
@@ -411,6 +444,15 @@ export default function Navbar({ activeView = "tickets", onNavigate }: NavbarPro
           <>
             <button
               type="button"
+              className={`zen-mobile-nav-item ${activeView === "dashboard" ? "active" : ""}`}
+              onClick={() => onNavigate?.("dashboard")}
+              aria-current={activeView === "dashboard" ? "page" : undefined}
+            >
+              <span style={{ fontSize: "1.25rem", lineHeight: 1 }}>📊</span>
+              <span>Dashboard</span>
+            </button>
+            <button
+              type="button"
               className={`zen-mobile-nav-item ${activeView === "tickets" ? "active" : ""}`}
               onClick={() => onNavigate?.("tickets")}
               aria-current={activeView === "tickets" ? "page" : undefined}
@@ -418,7 +460,6 @@ export default function Navbar({ activeView = "tickets", onNavigate }: NavbarPro
               <span style={{ fontSize: "1.25rem", lineHeight: 1 }}>📋</span>
               <span>My Tickets</span>
             </button>
-
             <button
               type="button"
               className={`zen-mobile-nav-item ${activeView === "create-ticket" ? "active" : ""}`}
@@ -433,6 +474,15 @@ export default function Navbar({ activeView = "tickets", onNavigate }: NavbarPro
 
         {activeUser?.role === "IT_STAFF" && (
           <>
+            <button
+              type="button"
+              className={`zen-mobile-nav-item ${activeView === "dashboard" ? "active" : ""}`}
+              onClick={() => onNavigate?.("dashboard")}
+              aria-current={activeView === "dashboard" ? "page" : undefined}
+            >
+              <span style={{ fontSize: "1.25rem", lineHeight: 1 }}>📊</span>
+              <span>Dashboard</span>
+            </button>
             <button
               type="button"
               className={`zen-mobile-nav-item ${activeView === "queue" ? "active" : ""}`}
@@ -456,6 +506,15 @@ export default function Navbar({ activeView = "tickets", onNavigate }: NavbarPro
 
         {activeUser?.role === "ADMINISTRATOR" && (
           <>
+            <button
+              type="button"
+              className={`zen-mobile-nav-item ${activeView === "dashboard" ? "active" : ""}`}
+              onClick={() => onNavigate?.("dashboard")}
+              aria-current={activeView === "dashboard" ? "page" : undefined}
+            >
+              <span style={{ fontSize: "1.25rem", lineHeight: 1 }}>📊</span>
+              <span>Dashboard</span>
+            </button>
             <button
               type="button"
               className={`zen-mobile-nav-item ${activeView === "admin" ? "active" : ""}`}

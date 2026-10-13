@@ -41,13 +41,31 @@ export interface MyTicketsProps {
 export default function MyTickets({ onNavigateCreate, onViewDetail }: MyTicketsProps) {
   const { selectedRequester } = useRequester();
 
+  // Helper to read initial status from URL search or hash
+  const getInitialStatus = (): string => {
+    if (typeof window === "undefined") return "ALL";
+    const searchParams = new URLSearchParams(window.location.search);
+    const searchStatus = searchParams.get("status");
+    if (searchStatus) return searchStatus.toUpperCase();
+
+    const hash = window.location.hash;
+    const hashQueryIndex = hash.indexOf("?");
+    if (hashQueryIndex !== -1) {
+      const hashParams = new URLSearchParams(hash.substring(hashQueryIndex));
+      const hashStatus = hashParams.get("status");
+      if (hashStatus) return hashStatus.toUpperCase();
+    }
+
+    return "ALL";
+  };
+
   // Search & Filter state
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryId, setCategoryId] = useState<string>("ALL");
   const [requestedPriority, setRequestedPriority] = useState<string>("ALL");
   const [itPriority, setItPriority] = useState<string>("ALL");
-  const [status, setStatus] = useState<string>("ALL");
+  const [status, setStatus] = useState<string>(getInitialStatus);
 
   // Sorting state
   const [sortBy, setSortBy] = useState<string>("createdAt");
@@ -81,18 +99,20 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }: MyTicketsP
   }, [searchInput]);
 
   // Context Switch Invariant (BR-16): reset all search/filters/page when requester changes
-  const prevRequesterIdRef = useRef<number | null>(null);
+  const prevRequesterIdRef = useRef<number | null>(selectedRequester?.id ?? null);
   useEffect(() => {
-    if (selectedRequester && prevRequesterIdRef.current !== selectedRequester.id) {
+    if (selectedRequester) {
+      if (prevRequesterIdRef.current !== null && prevRequesterIdRef.current !== selectedRequester.id) {
+        setSearchInput("");
+        setDebouncedSearch("");
+        setCategoryId("ALL");
+        setRequestedPriority("ALL");
+        setItPriority("ALL");
+        setStatus("ALL");
+        setPage(1);
+        setRequesterTotalTickets(null);
+      }
       prevRequesterIdRef.current = selectedRequester.id;
-      setSearchInput("");
-      setDebouncedSearch("");
-      setCategoryId("ALL");
-      setRequestedPriority("ALL");
-      setItPriority("ALL");
-      setStatus("ALL");
-      setPage(1);
-      setRequesterTotalTickets(null);
     }
   }, [selectedRequester]);
 
@@ -184,6 +204,20 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }: MyTicketsP
     status,
   ]);
 
+  // Keep status filter in sync if user navigates back/forward or hash changes
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const newStatus = getInitialStatus();
+      setStatus(newStatus);
+    };
+    window.addEventListener("popstate", handleUrlChange);
+    window.addEventListener("hashchange", handleUrlChange);
+    return () => {
+      window.removeEventListener("popstate", handleUrlChange);
+      window.removeEventListener("hashchange", handleUrlChange);
+    };
+  }, []);
+
   useEffect(() => {
     fetchTickets();
   }, [fetchTickets]);
@@ -208,6 +242,9 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }: MyTicketsP
     setItPriority("ALL");
     setStatus("ALL");
     setPage(1);
+    if (typeof window !== "undefined") {
+      window.history.pushState(null, "", `${window.location.pathname}#/my-tickets`);
+    }
   }
 
   const hasActiveFilters =
@@ -403,8 +440,10 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }: MyTicketsP
                 setPage(1);
               }}
               aria-label="Filter by Status"
+              data-testid="status-filter"
             >
               <option value="ALL">All Statuses</option>
+              <option value="OPEN">Open Tickets</option>
               <option value="NEW">New</option>
               <option value="ASSIGNED">Assigned</option>
               <option value="IN_PROGRESS">In Progress</option>
@@ -650,39 +689,101 @@ export default function MyTickets({ onNavigateCreate, onViewDetail }: MyTicketsP
                   </div>
                 </div>
 
-                {pagination.totalPages > 1 && (
-                  <nav aria-label="Ticket list pagination">
-                    <ul className="pagination pagination-sm mb-0">
-                      <li className={`page-item ${page <= 1 ? "disabled" : ""}`}>
-                        <button
-                          className="page-link"
-                          type="button"
-                          onClick={() => setPage((p) => Math.max(1, p - 1))}
-                          disabled={page <= 1}
-                        >
-                          &lt; Previous
-                        </button>
-                      </li>
-                      {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((p) => (
-                        <li key={p} className={`page-item ${p === page ? "active" : ""}`}>
-                          <button className="page-link" type="button" onClick={() => setPage(p)}>
-                            {p}
+                {pagination.totalPages > 1 && (() => {
+                  const MAX_VISIBLE_PAGES = 20;
+                  let startPage = 1;
+                  let endPage = pagination.totalPages;
+
+                  if (pagination.totalPages > MAX_VISIBLE_PAGES) {
+                    const half = Math.floor(MAX_VISIBLE_PAGES / 2);
+                    if (page <= half + 1) {
+                      startPage = 1;
+                      endPage = MAX_VISIBLE_PAGES;
+                    } else if (page >= pagination.totalPages - half) {
+                      endPage = pagination.totalPages;
+                      startPage = pagination.totalPages - MAX_VISIBLE_PAGES + 1;
+                    } else {
+                      startPage = page - half;
+                      endPage = page + (MAX_VISIBLE_PAGES - half - 1);
+                    }
+                  }
+
+                  const visiblePages = Array.from(
+                    { length: endPage - startPage + 1 },
+                    (_, i) => startPage + i
+                  );
+
+                  return (
+                    <nav aria-label="Ticket list pagination">
+                      <ul className="pagination pagination-sm mb-0 flex-wrap">
+                        <li className={`page-item ${page <= 1 ? "disabled" : ""}`}>
+                          <button
+                            className="page-link"
+                            type="button"
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                            disabled={page <= 1}
+                            aria-label="Previous page"
+                          >
+                            &lt; Previous
                           </button>
                         </li>
-                      ))}
-                      <li className={`page-item ${page >= pagination.totalPages ? "disabled" : ""}`}>
-                        <button
-                          className="page-link"
-                          type="button"
-                          onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-                          disabled={page >= pagination.totalPages}
-                        >
-                          Next &gt;
-                        </button>
-                      </li>
-                    </ul>
-                  </nav>
-                )}
+
+                        {startPage > 1 && (
+                          <li className="page-item">
+                            <button
+                              className="page-link"
+                              type="button"
+                              onClick={() => setPage(Math.max(1, startPage - 1))}
+                              aria-label="Previous page range"
+                              title={`Jump to page ${Math.max(1, startPage - 1)}`}
+                            >
+                              ...
+                            </button>
+                          </li>
+                        )}
+
+                        {visiblePages.map((p) => (
+                          <li key={p} className={`page-item ${p === page ? "active" : ""}`}>
+                            <button
+                              className="page-link"
+                              type="button"
+                              onClick={() => setPage(p)}
+                              aria-label={`Page ${p}`}
+                            >
+                              {p}
+                            </button>
+                          </li>
+                        ))}
+
+                        {endPage < pagination.totalPages && (
+                          <li className="page-item">
+                            <button
+                              className="page-link"
+                              type="button"
+                              onClick={() => setPage(Math.min(pagination.totalPages, endPage + 1))}
+                              aria-label="Next page range"
+                              title={`Jump to page ${Math.min(pagination.totalPages, endPage + 1)}`}
+                            >
+                              ...
+                            </button>
+                          </li>
+                        )}
+
+                        <li className={`page-item ${page >= pagination.totalPages ? "disabled" : ""}`}>
+                          <button
+                            className="page-link"
+                            type="button"
+                            onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                            disabled={page >= pagination.totalPages}
+                            aria-label="Next page"
+                          >
+                            Next &gt;
+                          </button>
+                        </li>
+                      </ul>
+                    </nav>
+                  );
+                })()}
               </div>
             </>
           )}

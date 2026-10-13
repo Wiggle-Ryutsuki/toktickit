@@ -920,49 +920,106 @@ export default function StaffTicketQueue({ onViewDetail, onNavigate }: StaffTick
                   </div>
                 </div>
 
-                {pagination.totalPages > 1 && (
-                  <nav aria-label="Ticket queue pagination">
-                    <ul className="pagination pagination-sm mb-0">
-                      <li className={`page-item ${page <= 1 ? "disabled" : ""}`}>
-                        <button
-                          className="page-link"
-                          type="button"
-                          onClick={() => setPage((p) => Math.max(1, p - 1))}
-                          disabled={page <= 1}
-                          aria-label="Previous page"
-                          data-testid="pagination-prev-btn"
-                        >
-                          &lt; Previous
-                        </button>
-                      </li>
-                      {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((p) => (
-                        <li key={p} className={`page-item ${p === page ? "active" : ""}`}>
+                {pagination.totalPages > 1 && (() => {
+                  const MAX_VISIBLE_PAGES = 20;
+                  let startPage = 1;
+                  let endPage = pagination.totalPages;
+
+                  if (pagination.totalPages > MAX_VISIBLE_PAGES) {
+                    const half = Math.floor(MAX_VISIBLE_PAGES / 2);
+                    if (page <= half + 1) {
+                      startPage = 1;
+                      endPage = MAX_VISIBLE_PAGES;
+                    } else if (page >= pagination.totalPages - half) {
+                      endPage = pagination.totalPages;
+                      startPage = pagination.totalPages - MAX_VISIBLE_PAGES + 1;
+                    } else {
+                      startPage = page - half;
+                      endPage = page + (MAX_VISIBLE_PAGES - half - 1);
+                    }
+                  }
+
+                  const visiblePages = Array.from(
+                    { length: endPage - startPage + 1 },
+                    (_, i) => startPage + i
+                  );
+
+                  return (
+                    <nav aria-label="Ticket queue pagination">
+                      <ul className="pagination pagination-sm mb-0 flex-wrap">
+                        <li className={`page-item ${page <= 1 ? "disabled" : ""}`}>
                           <button
                             className="page-link"
                             type="button"
-                            onClick={() => setPage(p)}
-                            aria-label={`Page ${p}`}
-                            data-testid={`pagination-page-${p}`}
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                            disabled={page <= 1}
+                            aria-label="Previous page"
+                            data-testid="pagination-prev-btn"
                           >
-                            {p}
+                            &lt; Previous
                           </button>
                         </li>
-                      ))}
-                      <li className={`page-item ${page >= pagination.totalPages ? "disabled" : ""}`}>
-                        <button
-                          className="page-link"
-                          type="button"
-                          onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-                          disabled={page >= pagination.totalPages}
-                          aria-label="Next page"
-                          data-testid="pagination-next-btn"
-                        >
-                          Next &gt;
-                        </button>
-                      </li>
-                    </ul>
-                  </nav>
-                )}
+
+                        {startPage > 1 && (
+                          <li className="page-item">
+                            <button
+                              className="page-link"
+                              type="button"
+                              onClick={() => setPage(Math.max(1, startPage - 1))}
+                              aria-label="Previous page range"
+                              data-testid="pagination-ellipsis-prev"
+                              title={`Jump to page ${Math.max(1, startPage - 1)}`}
+                            >
+                              ...
+                            </button>
+                          </li>
+                        )}
+
+                        {visiblePages.map((p) => (
+                          <li key={p} className={`page-item ${p === page ? "active" : ""}`}>
+                            <button
+                              className="page-link"
+                              type="button"
+                              onClick={() => setPage(p)}
+                              aria-label={`Page ${p}`}
+                              data-testid={`pagination-page-${p}`}
+                            >
+                              {p}
+                            </button>
+                          </li>
+                        ))}
+
+                        {endPage < pagination.totalPages && (
+                          <li className="page-item">
+                            <button
+                              className="page-link"
+                              type="button"
+                              onClick={() => setPage(Math.min(pagination.totalPages, endPage + 1))}
+                              aria-label="Next page range"
+                              data-testid="pagination-ellipsis-next"
+                              title={`Jump to page ${Math.min(pagination.totalPages, endPage + 1)}`}
+                            >
+                              ...
+                            </button>
+                          </li>
+                        )}
+
+                        <li className={`page-item ${page >= pagination.totalPages ? "disabled" : ""}`}>
+                          <button
+                            className="page-link"
+                            type="button"
+                            onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                            disabled={page >= pagination.totalPages}
+                            aria-label="Next page"
+                            data-testid="pagination-next-btn"
+                          >
+                            Next &gt;
+                          </button>
+                        </li>
+                      </ul>
+                    </nav>
+                  );
+                })()}
               </div>
             </>
           )}

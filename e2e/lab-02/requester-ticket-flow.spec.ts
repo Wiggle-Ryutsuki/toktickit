@@ -18,6 +18,18 @@ test.describe("E2E-01: Complete Requester Ticketing Flow", () => {
     // 1. Visit root page
     await page.goto("/");
 
+    // Wait for auth resolution (either login page or authenticated badge/modal becomes visible)
+    await page.waitForSelector('[data-testid="email-input"], .zen-user-badge, #requester-modal-title', { timeout: 10000 });
+
+    // If on login page (Lab 3+ authentication active), log in as Jennifer Anderson
+    const emailInput = page.getByTestId("email-input");
+    if (await emailInput.isVisible()) {
+      await emailInput.fill("jennifer.anderson@kmutt.ac.th");
+      await page.getByTestId("password-input").fill("Password123!");
+      await page.getByTestId("login-submit-btn").click();
+      await expect(page.locator(".zen-user-badge")).toBeVisible({ timeout: 10000 });
+    }
+
     // If requester selector modal is shown, choose Jennifer Anderson
     const modalTitle = page.locator("#requester-modal-title");
     if (await modalTitle.isVisible()) {
@@ -224,14 +236,28 @@ test.describe("E2E-01: Complete Requester Ticketing Flow", () => {
 
     // Screenshot 11: Requester switching isolation
     await page.goto("/");
-    await page.click('[data-testid="change-requester-btn"]');
-
-    await expect(page.locator("#requester-modal-title")).toBeVisible();
-    const switchSelect = page.locator("#requester-select");
-    const optMichael = switchSelect.locator('option:has-text("Michael Brown")');
-    const valMichael = await optMichael.getAttribute("value");
-    await switchSelect.selectOption(valMichael || "2");
-    await page.click('button[type="submit"]:has-text("Continue")');
+    const changeReqBtn = page.locator('[data-testid="change-requester-btn"]');
+    if (await changeReqBtn.isVisible()) {
+      await changeReqBtn.click();
+      await expect(page.locator("#requester-modal-title")).toBeVisible();
+      const switchSelect = page.locator("#requester-select");
+      const optMichael = switchSelect.locator('option:has-text("Michael Brown")');
+      const valMichael = await optMichael.getAttribute("value");
+      await switchSelect.selectOption(valMichael || "2");
+      await page.click('button[type="submit"]:has-text("Continue")');
+    } else {
+      const logoutBtn = page.locator('[data-testid="logout-btn"]');
+      if (await logoutBtn.isVisible()) {
+        await logoutBtn.click();
+      } else {
+        await page.goto("/");
+      }
+      const loginEmail = page.getByTestId("email-input");
+      await expect(loginEmail).toBeVisible();
+      await loginEmail.fill("michael.brown@kmutt.ac.th");
+      await page.getByTestId("password-input").fill("Password123!");
+      await page.getByTestId("login-submit-btn").click();
+    }
 
     await expect(page.locator(".zen-user-badge")).toContainText("Michael Brown");
 
@@ -245,10 +271,26 @@ test.describe("E2E-01: Complete Requester Ticketing Flow", () => {
     });
 
     // Switch back to Jennifer Anderson
-    await page.click('[data-testid="change-requester-btn"]');
-    const optJennifer = switchSelect.locator('option:has-text("Jennifer Anderson")');
-    const valJennifer = await optJennifer.getAttribute("value");
-    await switchSelect.selectOption(valJennifer || "1");
-    await page.click('button[type="submit"]:has-text("Continue")');
+    if (await changeReqBtn.isVisible()) {
+      await changeReqBtn.click();
+      const switchSelect = page.locator("#requester-select");
+      const optJennifer = switchSelect.locator('option:has-text("Jennifer Anderson")');
+      const valJennifer = await optJennifer.getAttribute("value");
+      await switchSelect.selectOption(valJennifer || "1");
+      await page.click('button[type="submit"]:has-text("Continue")');
+    } else {
+      const logoutBtn = page.locator('[data-testid="logout-btn"]');
+      if (await logoutBtn.isVisible()) {
+        await logoutBtn.click();
+      } else {
+        await page.goto("/");
+      }
+      const loginEmail = page.getByTestId("email-input");
+      await expect(loginEmail).toBeVisible();
+      await loginEmail.fill("jennifer.anderson@kmutt.ac.th");
+      await page.getByTestId("password-input").fill("Password123!");
+      await page.getByTestId("login-submit-btn").click();
+      await expect(page.locator(".zen-user-badge")).toContainText("Jennifer Anderson");
+    }
   });
 });

@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
 import crypto from "node:crypto";
-import { Prisma } from "@prisma/client";
+import { Prisma, TicketStatus } from "@prisma/client";
 import { getPrisma } from "../prisma.js";
 
 const VALID_PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
 const VALID_STATUSES = [
+  "OPEN",
   "NEW",
   "ASSIGNED",
   "IN_PROGRESS",
@@ -200,7 +201,19 @@ export async function listTickets(req: Request, res: Response): Promise<void> {
       ...(categoryId && { categoryId }),
       ...(requestedPriority && { requestedPriority }),
       ...(itPriority && { itPriority }),
-      ...(status && { status }),
+      ...(status &&
+        (status === "OPEN"
+          ? {
+              status: {
+                in: [
+                  TicketStatus.NEW,
+                  TicketStatus.ASSIGNED,
+                  TicketStatus.IN_PROGRESS,
+                  TicketStatus.PENDING_REQUESTER,
+                ],
+              },
+            }
+          : { status: status as TicketStatus })),
     };
 
     // Deterministic ordering: primary sort + secondary tie-breaker on id DESC (BR-13, BR-14)
