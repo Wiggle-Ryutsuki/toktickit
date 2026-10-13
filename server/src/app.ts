@@ -314,6 +314,27 @@ app.delete("/api/attachments/:id", softRemoveAttachment);
 app.delete("/api/v1/attachments/:id", softRemoveAttachment);
 
 // ---------------------------------------------------------------------------
+// Feature 13 — Actions Taken Foundation & Domain Model
+// ---------------------------------------------------------------------------
+import {
+  getActions,
+  createAction,
+  updateAction,
+  rejectDeleteAction,
+} from "./controllers/actions-taken.controller.js";
+
+app.get("/api/tickets/:id/actions", getActions);
+app.get("/api/v1/tickets/:id/actions", getActions);
+app.post("/api/tickets/:id/actions", createAction);
+app.post("/api/v1/tickets/:id/actions", createAction);
+
+app.patch("/api/tickets/:id/actions/:actionId", updateAction);
+app.patch("/api/v1/tickets/:id/actions/:actionId", updateAction);
+
+app.delete("/api/tickets/:id/actions/:actionId", rejectDeleteAction);
+app.delete("/api/v1/tickets/:id/actions/:actionId", rejectDeleteAction);
+
+// ---------------------------------------------------------------------------
 // Feature 12 — Administrator User Management
 // ---------------------------------------------------------------------------
 import {
@@ -341,6 +362,23 @@ app.patch("/api/v1/admin/users/:id", ...requireAdmin, updateAdminUser);
 app.post("/api/admin/users/:id/reset-password", ...requireAdmin, resetUserPassword);
 app.post("/api/v1/admin/users/:id/reset-password", ...requireAdmin, resetUserPassword);
 
+// ---------------------------------------------------------------------------
+// Feature 16 — Role-Based Operational Dashboards
+// ---------------------------------------------------------------------------
+import {
+  getRequesterDashboard,
+  getStaffDashboard,
+} from "./controllers/dashboard.controller.js";
+
+const requireStaff = [requireAuth, requireRole("IT_STAFF", "ADMINISTRATOR")];
+
+app.get("/api/dashboard/requester", requireAuth, getRequesterDashboard);
+app.get("/api/v1/dashboard/requester", requireAuth, getRequesterDashboard);
+
+app.get("/api/dashboard/staff", ...requireStaff, getStaffDashboard);
+app.get("/api/v1/dashboard/staff", ...requireStaff, getStaffDashboard);
+
 export default app;
+
 
 

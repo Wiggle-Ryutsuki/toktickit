@@ -121,7 +121,11 @@ test.describe("Feature-10 & Feature-11: IT Staff Queue & Ticket Operations E2E",
     // 7. Verify Requester lands on My Tickets
     await expect(page.getByRole("heading", { name: "My Tickets" })).toBeVisible();
 
-    // 8. Open Jennifer's ticket
+    // 8. Open Jennifer's ticket (search if needed to guarantee visibility)
+    const searchInput = page.locator('input[aria-label="Search tickets"]');
+    if (await searchInput.isVisible()) {
+      await searchInput.fill("Requester Note Guard");
+    }
     const jenniferRow = page.locator("tbody tr").filter({ hasText: "Requester Note Guard" }).first();
     await expect(jenniferRow).toBeVisible();
     await jenniferRow.click();
